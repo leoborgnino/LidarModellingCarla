@@ -90,9 +90,20 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   const float AttenAtm = Description.AtmospAttenRate;
   const float AbsAtm = exp(-AttenAtm * Distance);
 
+  //Posicion del sensor
+  FVector SensorLocation = SensorTransf.GetLocation();
+
+  FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal();
+  VectorIncidente.Normalize();
+
+  FVector VectorNormal = HitInfo.ImpactNormal;
+  VectorNormal.Normalize();
+
+  float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
+
   const float IntRec = AbsAtm; 
 
-  Detection.intensity = IntRec;
+  Detection.intensity = CosAngle;
 
   return Detection;
 }
