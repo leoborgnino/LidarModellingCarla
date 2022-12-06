@@ -101,9 +101,11 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
   float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
 
-  const float IntRec = AbsAtm; 
+  //const float IntRec = CosAngle * AbsAtm;
 
-  Detection.intensity = CosAngle;
+  const float IntRec = 7*CosAngle/(Distance*Distance) ; 
+
+  Detection.intensity = IntRec;
 
   return Detection;
 }
