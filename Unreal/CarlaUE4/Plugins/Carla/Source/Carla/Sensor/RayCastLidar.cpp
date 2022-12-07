@@ -87,23 +87,26 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
   const float Distance = Detection.point.Length();
 
+  //Atenuacion atmosferica en base a la distancia, por defecto de CARLA
   const float AttenAtm = Description.AtmospAttenRate;
   const float AbsAtm = exp(-AttenAtm * Distance);
 
+  //MEJORAS DEL MODELO
+  //Efecto del angulo del incidencia
+  
   //Posicion del sensor
-  FVector SensorLocation = SensorTransf.GetLocation();
-
-  FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal();
-  VectorIncidente.Normalize();
-
+  FVector SensorLocation = SensorTransf.GetLocation(); 
+  //Vector incidente, normalizado, entre sensor y punto de hit con el target
+  FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal(); 
+  //Vector normal a la superficie de hit, normalizado
   FVector VectorNormal = HitInfo.ImpactNormal;
-  VectorNormal.Normalize();
-
+  //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
   float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
 
-  //const float IntRec = CosAngle * AbsAtm;
-
-  const float IntRec = 7*CosAngle/(Distance*Distance) ; 
+  //La intensidad del punto tiene en cuenta:
+  //Atenuacion atmosferica: la intensidad sera menor a mayor distancia
+  //Cos Ang Incidencia: la intensidad mientras mas perpendicular a la superficie sea el rayo incidente
+  const float IntRec = CosAngle * AbsAtm;
 
   Detection.intensity = IntRec;
 
