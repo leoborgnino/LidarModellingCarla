@@ -50,10 +50,13 @@ def main(arg):
         #Setea modo sincrono en la simulacion con delta fijo
         original_settings = world.get_settings()
         settings = world.get_settings()
+        traffic_manager = client.get_trafficmanager(8000)
+        
         delta = 0.05
         settings.fixed_delta_seconds = delta
         settings.synchronous_mode = True
         world.apply_settings(settings)
+        traffic_manager.set_synchronous_mode(True)
 
         blueprint_library = world.get_blueprint_library()
 
@@ -67,6 +70,7 @@ def main(arg):
         lidar_bp.set_attribute('points_per_second', str(1300000))
         lidar_bp.set_attribute('noise_stddev', str(0.01))
         lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
+        lidar_bp.set_attribute('sensor_tick', str(0.1)) #al ser el doble q delta, va a dar un dato cada 2 ticks
 
         #Crea la camara RGB
         camera_bp = blueprint_library.filter("sensor.camera.rgb")[0]
@@ -100,22 +104,39 @@ def main(arg):
         lidar.listen(lambda data: sensor_callback(data,lidar_queue))
         camera.listen(lambda data: sensor_callback(data,image_queue))
         
-        world.tick()
+        frames = arg.frames
+        frames_captured = 0
+        ticks = 0
         
-        image_data = image_queue.get()
-        lidar_data = lidar_queue.get()
+        while frames_captured < frames:
+
+            world.tick()
+            ticks = ticks + 1
+            #time.sleep(0.005)
+
+            if not image_queue.empty():
+                image_data = image_queue.get()
+                
+            if not lidar_queue.empty():
+                lidar_data = lidar_queue.get()
+                
+            if ticks > 1 and (image_data.frame == lidar_data.frame):
+
+                #guardar imagen
+                image_data.save_to_disk('./images/%6d.png' % image_data.frame)
+                #print('imagen %.6d.bin guardada' % image_data.frame)
+                #guardar nube de puntos
+                pc = np.copy(np.frombuffer(lidar_data.raw_data, dtype=np.dtype('f4')))
+                pc = np.reshape(pc, (int(pc.shape[0] / 4), 4))
+
+                pc.tofile('./point_clouds/%.6d.bin' % lidar_data.frame)
+                #print('point cloud %.6d.bin guardada' % lidar_data.frame)
+
+                frames_captured = frames_captured + 1
         
-        #guardar nube de puntos
-        pc = np.copy(np.frombuffer(lidar_data.raw_data, dtype=np.dtype('f4')))
-        pc = np.reshape(pc, (int(pc.shape[0] / 4), 4))
-
-        pc.tofile('./point_clouds/%.6d.bin' % lidar_data.frame)
-        print('point cloud %.6d.bin guardada' % lidar_data.frame)
-
-        #guardar imagen
-        image_data.save_to_disk('./images/%6d.png' % image_data.frame)
-        print('imagen %.6d.bin guardada' % image_data.frame)
-
+            sys.stdout.write("\r Capturados %d frames de %d en %d" % (frames_captured,frames,ticks) + ' ')
+            sys.stdout.flush()
+        
     finally:
         world.apply_settings(original_settings)
         vehicle.destroy()
@@ -125,6 +146,11 @@ def main(arg):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
         description=__doc__)
+    argparser.add_argument(
+        '-f', '--frames',
+        default=10,
+        type=int,
+        help='cantidad de frames a capturar, default: 10')
     args = argparser.parse_args()
 
     try:
