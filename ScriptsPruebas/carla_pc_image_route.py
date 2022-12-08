@@ -17,25 +17,6 @@ try:
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
 except IndexError:
-    passimport glob
-import os
-import sys
-import argparse
-import time
-from datetime import datetime
-import random
-import numpy as np
-from matplotlib import cm
-import open3d as o3d
-from queue import Queue
-from queue import Empty
-
-try:
-    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
-        sys.version_info.major,
-        sys.version_info.minor,
-        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
-except IndexError:
     pass
 
 import carla
