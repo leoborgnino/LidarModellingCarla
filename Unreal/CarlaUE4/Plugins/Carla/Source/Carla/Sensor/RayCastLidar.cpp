@@ -19,6 +19,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/CollisionProfile.h"
 #include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "JsonUtilities.h"
 
 FActorDefinition ARayCastLidar::GetSensorDefinition()
 {
@@ -31,6 +32,9 @@ ARayCastLidar::ARayCastLidar(const FObjectInitializer& ObjectInitializer)
 
   RandomEngine = CreateDefaultSubobject<URandomEngine>(TEXT("RandomEngine"));
   SetSeed(Description.RandomSeed);
+
+  //Cargar el reflectivitymap desde un archivo json
+  LoadReflectivityMapFromJson();
 }
 
 void ARayCastLidar::Set(const FActorDescription &ActorDescription)
@@ -94,6 +98,8 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   //MEJORAS DEL MODELO
   //Efecto del angulo del incidencia
   
+  //SACAR EN OTRA FUNCION 
+  
   //Posicion del sensor
   FVector SensorLocation = SensorTransf.GetLocation(); 
   //Vector incidente, normalizado, entre sensor y punto de hit con el target
@@ -102,6 +108,28 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   FVector VectorNormal = HitInfo.ImpactNormal;
   //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
   float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
+  CosAngle = sqrtf(CosAngle);
+  
+  //Efecto de la reflectividad del material
+  //SACAR EN OTRA FUNCION 
+  
+  UPrimitiveComponent* ComponentHit = HitInfo.GetComponent();
+  if(ComponentHit){
+    if (HitInfo.FaceIndex != -1) {
+        int32 section = 0;
+        UMaterialInterface* MaterialIntHit = ComponentHit->GetMaterialFromCollisionFaceIndex(HitInfo.FaceIndex, section);
+
+        if(MaterialIntHit){
+          UMaterial* MaterialHit = MaterialIntHit->GetMaterial();
+
+          if(MaterialHit){
+            FString MaterialNameHit = MaterialHit->GetName();
+            //GLog->Log(MaterialNameHit);
+            //WriteFile(MaterialNameHit);
+          }
+        }
+    }
+  }
 
   //La intensidad del punto tiene en cuenta:
   //Atenuacion atmosferica: la intensidad sera menor a mayor distancia
@@ -155,4 +183,49 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     }
 
     LidarData.WriteChannelCount(PointsPerChannel);
+  }
+
+  //Funcion implementada para leer desde un json, la reflectividad asociada a cada material
+  //y cargarlo en el ReflectivityMap
+  void ARayCastLidar::LoadReflectivityMapFromJson(){
+
+    //path del archivo json
+    const FString JsonFilePath = FPaths::ProjectContentDir() + "/JsonFiles/test1.json";
+
+    //carga el json a un string
+    FString JsonString;
+    FFileHelper::LoadFileToString(JsonString,*JsonFilePath);
+
+    TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+	  TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(JsonString);
+
+    //parsea el string a un jsonobject
+    if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
+    { 
+      //obtener el array de materials
+      TArray<TSharedPtr<FJsonValue>> objArray=JsonObject->GetArrayField("materials");
+      
+      //iterar sobre todos los elmentos del array
+      for(int32 index=0;index<objArray.Num();index++)
+      {
+        TSharedPtr<FJsonObject> obj = objArray[index]->AsObject();
+        if(obj.IsValid()){
+          
+          //de cada elemento, obtener nombre y reflectivity
+          FString name = obj->GetStringField("name");
+          float reflec = (float)obj->GetNumberField("reflectivity");
+
+          //cargar en el ReflectivityMap
+          ReflectivityMap.Add(name,reflec);
+        }
+      }
+    }
+  }
+
+  void ARayCastLidar::WriteFile(FString String) const{
+    const FString FilePath = FPaths::ProjectContentDir() + "/JsonFiles/materiales.txt";
+    FString new_String = FString::Printf( TEXT( "%s \n" ), *String);
+    FFileHelper::SaveStringToFile(new_String, *FilePath,
+    FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
+
   }
