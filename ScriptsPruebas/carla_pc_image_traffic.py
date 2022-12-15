@@ -193,7 +193,7 @@ def main(arg):
                 pointcloud_path = './%s/%.6d.bin' % (pointclouds_folder, lidar_data.frame) 
                 pc.tofile(pointcloud_path)
                 #print('point cloud %.6d.bin guardada' % lidar_data.frame)
-                
+                 
                 frames_captured = frames_captured + 1
         
             sys.stdout.write("\r Capturados %d frames de %d en %d ticks" % (frames_captured,frames,ticks) + ' ')
