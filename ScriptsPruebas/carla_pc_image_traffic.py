@@ -50,6 +50,7 @@ def main(arg):
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
     
+    #Crear directorios para guardar los datos, nubes de puntos e imagenes
     current_datetime = datetime.now().strftime("%d-%m-%y_%X")
     images_folder = 'images/' + current_datetime
     pointclouds_folder = 'point_clouds/' + current_datetime
@@ -69,6 +70,7 @@ def main(arg):
         #traffic_manager.set_hybrid_physics_radius(100.0) #dentro de este radio, si se calculan las fisicas
         
         delta = 0.05
+        #delta = 0.1
         settings.fixed_delta_seconds = delta
         settings.synchronous_mode = True
         world.apply_settings(settings)
@@ -85,7 +87,7 @@ def main(arg):
         lidar_bp.set_attribute('points_per_second', str(1300000))
         lidar_bp.set_attribute('noise_stddev', str(0.01))
         lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
-        lidar_bp.set_attribute('sensor_tick', str(0.3)) #al ser el doble q delta, va a dar un dato cada 2 ticks
+        #lidar_bp.set_attribute('sensor_tick', str(0.1)) #si es el doble q delta, va a dar un dato cada 2 ticks
 
         #Crea la camara RGB
         camera_bp = blueprint_library.filter("sensor.camera.rgb")[0]
@@ -98,7 +100,8 @@ def main(arg):
         vehicle_bp.set_attribute('role_name', 'autopilot')
 
         #Spawnear vehiculo y sensores
-        vehicle_transform = world.get_map().get_spawn_points()[0]
+        sp_vehicle_sensors = 0
+        vehicle_transform = world.get_map().get_spawn_points()[sp_vehicle_sensors]
         vehicle = world.spawn_actor(
             blueprint=vehicle_bp,
             transform=vehicle_transform)
@@ -126,7 +129,7 @@ def main(arg):
         vehicles_bp = blueprint_library.filter('vehicle.*') #blueprints de todos los vehiculos
         vehicles_bp = sorted(vehicles_bp, key=lambda bp: bp.id)
         spawn_points = world.get_map().get_spawn_points() #puntos de spawn del mapa en uso
-        spawn_points.pop(0) #se quita el punto 0 ya que en ese se spawnea el vehivulo con los sensores
+        spawn_points.pop(sp_vehicle_sensors) #se quita el punto en el que se spawnea el vehivulo con los sensores
         random.shuffle(spawn_points) #mezclar 
 
         number_of_vehicles = 30
@@ -193,7 +196,7 @@ def main(arg):
                 
                 frames_captured = frames_captured + 1
         
-            sys.stdout.write("\r Capturados %d frames de %d en %d" % (frames_captured,frames,ticks) + ' ')
+            sys.stdout.write("\r Capturados %d frames de %d en %d ticks" % (frames_captured,frames,ticks) + ' ')
             sys.stdout.flush()
         
     finally:
