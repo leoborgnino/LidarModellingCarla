@@ -67,7 +67,7 @@ private:
   TMap<FString, float> ReflectivityMap;
 
   //Funcion para leer un archivo json y cargar el reflectivity map
-  void LoadReflectivityMapFromJson();
+  void LoadReflectivityMapFromJson(); 
   
   
   

@@ -124,7 +124,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
           if(MaterialHit){
             FString MaterialNameHit = MaterialHit->GetName();
-            //GLog->Log(MaterialNameHit);
+            //GLog->Log(MaterialNameHit); 
             //WriteFile(MaterialNameHit);
           }
         }
