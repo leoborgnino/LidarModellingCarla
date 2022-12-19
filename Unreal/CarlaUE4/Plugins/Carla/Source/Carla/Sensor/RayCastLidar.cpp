@@ -111,30 +111,32 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   CosAngle = sqrtf(CosAngle);
   
   //Efecto de la reflectividad del material
-  //SACAR EN OTRA FUNCION 
-  
-  UPrimitiveComponent* ComponentHit = HitInfo.GetComponent();
-  if(ComponentHit){
-    if (HitInfo.FaceIndex != -1) {
-        int32 section = 0;
-        UMaterialInterface* MaterialIntHit = ComponentHit->GetMaterialFromCollisionFaceIndex(HitInfo.FaceIndex, section);
 
-        if(MaterialIntHit){
-          UMaterial* MaterialHit = MaterialIntHit->GetMaterial();
+  const double* ReflectivityPointer;
+  float ReflectivityValue;
 
-          if(MaterialHit){
-            FString MaterialNameHit = MaterialHit->GetName();
-            //GLog->Log(MaterialNameHit); 
-            //WriteFile(MaterialNameHit);
-          }
-        }
-    }
+  //Obtener el nombre del material del hit
+  FString MaterialNameHit = GetHitMaterialName(HitInfo);
+
+  //Buseuda del material en el mapa de reflectividades
+  if(ReflectivityMap.Contains(MaterialNameHit)){
+    ReflectivityPointer = ReflectivityMap.Find(MaterialNameHit);
+    ReflectivityValue = (float)*ReflectivityPointer;
+
+    //GLog->Log(MaterialNameHit);
+    //GLog->Log("reflec:" + FString::SanitizeFloat(ReflectivityValue));
+  }else{
+    ReflectivityValue = 0.1f;  //CAMBIAR REFLECTIVIDAD POR DEFECTO
   }
+  
+  //WriteFile(MaterialNameHit);
 
   //La intensidad del punto tiene en cuenta:
   //Atenuacion atmosferica: la intensidad sera menor a mayor distancia
   //Cos Ang Incidencia: la intensidad mientras mas perpendicular a la superficie sea el rayo incidente
-  const float IntRec = CosAngle * AbsAtm;
+  //Reflectividad del material
+  const float IntRec = CosAngle * AbsAtm * ReflectivityValue;
+  //const float IntRec = ReflectivityValue;
 
   Detection.intensity = IntRec;
 
@@ -213,7 +215,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
           
           //de cada elemento, obtener nombre y reflectivity
           FString name = obj->GetStringField("name");
-          float reflec = (float)obj->GetNumberField("reflectivity");
+          double reflec = obj->GetNumberField("reflectivity");
 
           //cargar en el ReflectivityMap
           ReflectivityMap.Add(name,reflec);
@@ -228,4 +230,25 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     FFileHelper::SaveStringToFile(new_String, *FilePath,
     FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
 
+  }
+
+  FString ARayCastLidar::GetHitMaterialName(const FHitResult& HitInfo) const{
+
+    UPrimitiveComponent* ComponentHit = HitInfo.GetComponent();
+    if(ComponentHit){
+      if (HitInfo.FaceIndex != -1) {
+        int32 section = 0;
+        UMaterialInterface* MaterialIntHit = ComponentHit->GetMaterialFromCollisionFaceIndex(HitInfo.FaceIndex, section);
+
+        if(MaterialIntHit){
+          UMaterial* MaterialHit = MaterialIntHit->GetMaterial();
+
+          if(MaterialHit){
+            return MaterialHit->GetName();
+          }
+        }
+      }
+    }
+
+    return FString(TEXT("NoMaterial"));
   }

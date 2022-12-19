@@ -64,12 +64,12 @@ private:
 
   //Map de materialName,reflectivity para todos los materiales
   //Se lo inicializa leyendo desde un archivo json en el constructor de la clase
-  TMap<FString, float> ReflectivityMap;
+  TMap<FString, double> ReflectivityMap;
 
   //Funcion para leer un archivo json y cargar el reflectivity map
   void LoadReflectivityMapFromJson(); 
   
-  
+  FString GetHitMaterialName(const FHitResult& HitInfo) const;
   
 
 };
