@@ -68,6 +68,7 @@ private:
 
   //Funcion para leer un archivo json y cargar el reflectivity map
   void LoadReflectivityMapFromJson(); 
+  //const FString JsonMaterialsPath;
   
   FString GetHitMaterialName(const FHitResult& HitInfo) const;
   
