@@ -14,6 +14,7 @@ from queue import Empty
 import logging
 import cv2
 import math
+import json
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -34,6 +35,8 @@ IMAGES_FOLDER = "image_2"
 POINTCLOUDS_FOLDER = "velodyne"
 LABELS_FOLDER = "label_2"
 CALIB_FOLDER = "calib"
+
+LIST_VEHICLES_PATH = "../Unreal/CarlaUE4/LidarModelFiles/vehicles.json"
 
 """ SAVE PATHS """
 LIDAR_PATH = os.path.join(OUTPUT_FOLDER, 'velodyne/{0:06}.bin')
@@ -73,6 +76,8 @@ def generate_lidar_bp(blueprint_library,delta):
     lidar_bp.set_attribute('points_per_second', str(1300000))
     lidar_bp.set_attribute('noise_stddev', str(0.01))
     lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
+    lidar_bp.set_attribute('dropoff_intensity_limit',str(0.0))
+    lidar_bp.set_attribute('dropoff_zero_intensity',str(0.0))
     #lidar_bp.set_attribute('sensor_tick', str(0.1)) #si es el doble q delta, va a dar un dato cada 2 ticks
     return lidar_bp
 
@@ -151,6 +156,17 @@ def get_center_world_pos(vehicle):
 
     return vehicle_world_pos
 
+def load_list_of_vehicles():
+    file = open(LIST_VEHICLES_PATH)
+    data=json.load(file)
+    file.close()
+
+    list_of_vehicles=[]
+    for vehicle_id in data['vehicles']:
+        list_of_vehicles.append(vehicle_id['api_bp_name'])
+
+    return list_of_vehicles
+
 def main(arg):
     """Spawnea el LIDAR HDL-64E y una camara RGB en un vehiculo, y genera un paso de simulacion"""
     #Cliente y simulador
@@ -224,15 +240,12 @@ def main(arg):
         camera.listen(lambda data: sensor_callback(data,image_queue))
         
         #spawnear trafico 
-        list_of_vehicles = ['audi.tt','citroen.c3','mini.cooper_s','chevrolet.impala']
+        list_of_vehicles = load_list_of_vehicles()
 
         vehicles_bp = blueprint_library.filter('vehicle.*') #blueprints de todos los vehiculos
-        vehicles_bp = [x for x in vehicles_bp if \
-                        x.id.endswith(list_of_vehicles[0]) or \
-                        x.id.endswith(list_of_vehicles[1]) or \
-                        x.id.endswith(list_of_vehicles[2]) or \
-                        x.id.endswith(list_of_vehicles[3]) ]
-
+        vehicles_bp = [x for x in vehicles_bp if x.id.endswith(tuple(list_of_vehicles)) ]
+        #print(vehicles_bp)
+        
         vehicles_bp = sorted(vehicles_bp, key=lambda bp: bp.id)
         spawn_points = world.get_map().get_spawn_points() #puntos de spawn del mapa en uso
         spawn_points.pop(sp_vehicle) #se quita el punto en el que se spawnea el vehivulo con los sensores
@@ -271,9 +284,7 @@ def main(arg):
             if not lidar_queue.empty():
                 pointcloud = lidar_queue.get()
             
-            print('tick')
-            print(image.frame)
-            print(pointcloud.frame)
+
             #cuando se tengan ambos datos (imagen y nube de puntos) de un mismo frame, se almacenan ambos
             if ticks > 1 and (image.frame == pointcloud.frame):
 
@@ -289,8 +300,8 @@ def main(arg):
                 label_file_name = './%s/%.6d.txt' % (labels_path, pointcloud.frame)
                 label_file = open(label_file_name,'w')
 
-                #sys.stdout.write("\r Capturados %d frames de %d en %d ticks" % (frames_captured,frames,ticks) + ' ')
-                #sys.stdout.flush()
+                sys.stdout.write("\r Capturados %d frames de %d" % (frames_captured,frames) + ' ')
+                sys.stdout.flush()
 
                 # Posicion de la camara para transformar coordenadas
                 world_2_camera = np.array(camera.get_transform().get_inverse_matrix())

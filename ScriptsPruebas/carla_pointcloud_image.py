@@ -85,12 +85,12 @@ def main(arg):
 
         camera = world.spawn_actor(
             blueprint=camera_bp,
-            transform=carla.Transform(carla.Location(x=0.5, z=1.6)), #posicion segun Kitti
+            transform=carla.Transform(carla.Location(x=0.5, z=1.65)), #posicion segun Kitti
             attach_to=vehicle)
 
         lidar = world.spawn_actor(
             blueprint=lidar_bp,
-            transform=carla.Transform(carla.Location(x=-0.5, z=1.8)), #posicion segun Kitti
+            transform=carla.Transform(carla.Location(x=1.0, z=1.73)), #posicion segun Kitti
             attach_to=vehicle)
 
         #Funciones de callback para almacenar imagen y nube de puntos
