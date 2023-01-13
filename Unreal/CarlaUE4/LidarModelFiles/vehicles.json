@@ -1,0 +1,33 @@
+{
+    "vehicles": [
+        {
+            "unreal_actor_name": "AudiA2",
+            "api_bp_name": "vehicle.audi.a2"
+        },
+        {
+            "unreal_actor_name": "AudiTT",
+            "api_bp_name": "vehicle.audi.tt"
+        },  
+        {
+            "unreal_actor_name": "Audi_Etron",
+            "api_bp_name": "vehicle.audi.etron"
+        },
+        {
+            "unreal_actor_name": "CitroenC3",
+            "api_bp_name": "vehicle.citroen.c3"
+        },
+        {
+            "unreal_actor_name": "ChevroletImpala",
+            "api_bp_name": "vehicle.chevrolet.impala"
+        },
+        {
+            "unreal_actor_name": "SeatLeon",            
+            "api_bp_name": "vehicle.seat.leon"
+
+        },
+        {
+            "unreal_actor_name": "Mercedes",             
+            "api_bp_name": "vehicle.mercedes.coupe"
+        }   
+    ]
+}
