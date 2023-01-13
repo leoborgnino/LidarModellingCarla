@@ -45,7 +45,7 @@ def main(arg):
     """Spawnea el LIDAR HDL-64E y una camara RGB en un vehiculo, y genera un paso de simulacion"""
     #Cliente y simulador
     client = carla.Client('localhost', 2000)
-    client.set_timeout(2.0)
+    client.set_timeout(10.0)
     world = client.get_world()
 
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -85,6 +85,7 @@ def main(arg):
         lidar_bp.set_attribute('range', str(120))
         lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
         lidar_bp.set_attribute('points_per_second', str(1300000))
+        #lidar_bp.set_attribute('points_per_second', str(500000))
         lidar_bp.set_attribute('noise_stddev', str(0.01))
         lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
         #lidar_bp.set_attribute('sensor_tick', str(0.1)) #si es el doble q delta, va a dar un dato cada 2 ticks
@@ -126,7 +127,14 @@ def main(arg):
         camera.listen(lambda data: sensor_callback(data,image_queue))
         
         #spawnear trafico 
+        list_of_vehicles = ['audi.tt','citroen.c3','mini.cooper_s','chevrolet.impala']
+        
         vehicles_bp = blueprint_library.filter('vehicle.*') #blueprints de todos los vehiculos
+        vehicles_bp = [x for x in vehicles_bp if \
+                        x.id.endswith(list_of_vehicles[0]) or \
+                        x.id.endswith(list_of_vehicles[1]) or \
+                        x.id.endswith(list_of_vehicles[2]) or \
+                        x.id.endswith(list_of_vehicles[3])]
         vehicles_bp = sorted(vehicles_bp, key=lambda bp: bp.id)
         spawn_points = world.get_map().get_spawn_points() #puntos de spawn del mapa en uso
         spawn_points.pop(sp_vehicle_sensors) #se quita el punto en el que se spawnea el vehivulo con los sensores

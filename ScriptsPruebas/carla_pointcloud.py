@@ -52,7 +52,7 @@ def main(arg):
         lidar_bp.set_attribute('channels', str(64))
         lidar_bp.set_attribute('range', str(120))
         lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
-        lidar_bp.set_attribute('points_per_second', str(1300000))
+        lidar_bp.set_attribute('points_per_second', str(500000))
         lidar_bp.set_attribute('noise_stddev', str(0.01))
         lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
 
@@ -65,7 +65,7 @@ def main(arg):
         lidar.listen(lambda data: lidar_callback(data))
         
         world.tick()
-        time.sleep(0.005)
+        time.sleep(1.0)
 
     finally:
         world.apply_settings(original_settings)
