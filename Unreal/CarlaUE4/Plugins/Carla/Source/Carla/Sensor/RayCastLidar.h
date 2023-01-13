@@ -71,6 +71,10 @@ private:
   //const FString JsonMaterialsPath;
   
   FString GetHitMaterialName(const FHitResult& HitInfo) const;
-  
 
+  //Lista de los nombres de actores, para los cuales se van a tener en cuenta los materiales
+  //Se lo inicializa leyendo desde un archivo json en el constructor de la clase
+  TArray<FString> ActorsList;
+
+  void LoadActorsList();
 };

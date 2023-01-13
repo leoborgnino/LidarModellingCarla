@@ -37,6 +37,9 @@ ARayCastLidar::ARayCastLidar(const FObjectInitializer& ObjectInitializer)
   //const FString JsonMaterialsPath = FPaths::ProjectContentDir() + "/JsonFiles/materials.json";
   LoadReflectivityMapFromJson();
 
+  //Cargar la lista de actores desde un archivo json
+  LoadActorsList();
+
 }
 
 void ARayCastLidar::Set(const FActorDescription &ActorDescription)
@@ -100,8 +103,6 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   //MEJORAS DEL MODELO
   //Efecto del angulo del incidencia
   
-  //SACAR EN OTRA FUNCION 
-  
   //Posicion del sensor
   FVector SensorLocation = SensorTransf.GetLocation(); 
   //Vector incidente, normalizado, entre sensor y punto de hit con el target
@@ -110,31 +111,38 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   FVector VectorNormal = HitInfo.ImpactNormal;
   //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
   float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
-  CosAngle = sqrtf(CosAngle);
+  //CosAngle = sqrtf(CosAngle);
   
   //Efecto de la reflectividad del material
   AActor* ActorHit = HitInfo.GetActor();
   FString ActorHitName = ActorHit->GetName();
 
-  
-
-  //WriteFile(ActorHitName);
-
   const double* ReflectivityPointer;
   float ReflectivityValue;
   bool MaterialFound=false;
-  //Obtener el nombre del material del hit
-  //GLog->Log("CHECK MATERIAL");
-  FString MaterialNameHit = GetHitMaterialName(HitInfo);
-  //GLog->Log(MaterialNameHit);
-  if(ActorHitName.Contains("Audi")){
-    //WriteFile(MaterialNameHit);
+  bool ActorFound = false;
+
+  //Determinar si el actor del hit, esta dentro de los actores a los cuales computar los materiales
+  for (int32 i=0; i!=ActorsList.Num();i++){
+    if(ActorHitName.Contains(ActorsList[i])){
+      ActorFound=true;
+      break;
+    }
+  }
+
+  //Segun si el nombre del actor, corresponde a un actor al cual computar su material
+  if(ActorFound){
+    
+    //Se obtiene el nombre del material del hit
+    FString MaterialNameHit = GetHitMaterialName(HitInfo);
+
+    //Se recorre la lista de materiales con su respectiva reflectividad
     for (auto& Elem : ReflectivityMap)
     {
       FString MaterialKey = Elem.Key;
       //comprueba de si el nombre del material esta incluido en el material del hit
       if(MaterialNameHit.Contains(MaterialKey)){
-        //cuando se encuentra, se opbtiene el valor de reflectividad asociado a ese material
+        //cuando se encuentra, se obtiene el valor de reflectividad asociado a ese material
         ReflectivityValue = (float)Elem.Value;
         MaterialFound=true;
         //WriteFile(MaterialNameHit);
@@ -142,37 +150,20 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
       }
     }
   }
-  
-  // recorre el mapa de materiales
-  
+
   if(!MaterialFound){
-    if(MaterialNameHit.Compare("DefaultMaterial") != 0){
-      //GLog->Log(MaterialNameHit);
-    }
-    
-    ReflectivityValue = 0.1f;  //CAMBIAR REFLECTIVIDAD POR DEFECTO
+    //Se le asigna una reflectivdad por defeto a los materiales no criticos
+    ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
+    ReflectivityValue = (float)*ReflectivityPointer;
   }
 
-  
-  //Buseuda del material en el mapa de reflectividades
-  //if(ReflectivityMap.Contains(MaterialNameHit)){
-    //ReflectivityPointer = ReflectivityMap.Find(MaterialNameHit);
-    //ReflectivityValue = (float)*ReflectivityPointer;
-
-    //GLog->Log(MaterialNameHit);
-    //GLog->Log("reflec:" + FString::SanitizeFloat(ReflectivityValue));
-  //}else{
-    //ReflectivityValue = 0.1f;  //CAMBIAR REFLECTIVIDAD POR DEFECTO
-  //}
-  
-  //WriteFile(MaterialNameHit);
-
   //La intensidad del punto tiene en cuenta:
-  //Atenuacion atmosferica: la intensidad sera menor a mayor distancia
-  //Cos Ang Incidencia: la intensidad mientras mas perpendicular a la superficie sea el rayo incidente
+  //Atenuacion atmosferica -> la intensidad sera menor a mayor distancia
+  //Cos Ang Incidencia -> la intensidad mientras mas perpendicular a la superficie sea el rayo incidente
   //Reflectividad del material
-  //const float IntRec = CosAngle * AbsAtm * ReflectivityValue;
-  const float IntRec = ReflectivityValue;
+
+  const float IntRec = CosAngle * AbsAtm * ReflectivityValue;
+  //const float IntRec = ReflectivityValue;
 
   Detection.intensity = IntRec;
 
@@ -228,11 +219,13 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   void ARayCastLidar::LoadReflectivityMapFromJson(){
 
     //path del archivo json
-    const FString JsonFilePath = FPaths::ProjectContentDir() + "/JsonFiles/materials.json";
+    const FString FilePath = FPaths::ProjectDir() + "/LidarModelFiles/materials.json";
+  
+    //const FString JsonFilePath = FPaths::ProjectContentDir() + "/JsonFiles/materials.json";
 
     //carga el json a un string
     FString JsonString;
-    FFileHelper::LoadFileToString(JsonString,*JsonFilePath);
+    FFileHelper::LoadFileToString(JsonString,*FilePath);
 
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
 	  TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(JsonString);
@@ -263,8 +256,47 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     }
   }
 
+  void ARayCastLidar::LoadActorsList(){
+
+    //path del archivo json
+    const FString FilePath = FPaths::ProjectDir() + "/LidarModelFiles/vehicles.json";
+  
+    //const FString JsonFilePath = FPaths::ProjectContentDir() + "/JsonFiles/materials.json";
+
+    //carga el json a un string
+    FString JsonString;
+    FFileHelper::LoadFileToString(JsonString,*FilePath);
+
+    TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
+	  TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(JsonString);
+
+    //parsea el string a un jsonobject
+    if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
+    { 
+      //obtener el array de materials
+      TArray<TSharedPtr<FJsonValue>> objArray=JsonObject->GetArrayField("vehicles");
+      
+      //iterar sobre todos los elmentos del array
+      for(int32 index=0;index<objArray.Num();index++)
+      {
+        TSharedPtr<FJsonObject> obj = objArray[index]->AsObject();
+        if(obj.IsValid()){
+          
+          //de cada elemento, obtener el nombre del actor
+          FString name = obj->GetStringField("unreal_actor_name");
+
+          ActorsList.Add(name);
+
+          GLog->Log("name:" + name);
+
+        }
+      }
+    }
+
+  }
+
   void ARayCastLidar::WriteFile(FString String) const{
-    const FString FilePath = FPaths::ProjectContentDir() + "/JsonFiles/materiales.txt";
+    const FString FilePath = FPaths::ProjectContentDir() + "/JsonFiles/actores.txt";
     FString new_String = FString::Printf( TEXT( "%s \n" ), *String);
     FFileHelper::SaveStringToFile(new_String, *FilePath,
     FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
@@ -279,14 +311,9 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
       if (HitInfo.FaceIndex != -1) {
         int32 section = 0;
         UMaterialInterface* MaterialIntHit = ComponentHit->GetMaterialFromCollisionFaceIndex(HitInfo.FaceIndex, section);
-        
-        if(MaterialIntHit){
-          UMaterial* MaterialHit = MaterialIntHit->GetMaterial();
 
-          if(MaterialHit){
-            return MaterialHit->GetName();
-          }
-        }
+        return MaterialIntHit->GetName();
+
       }
     }
 
