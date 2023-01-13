@@ -1,0 +1,42 @@
+Para que modelo de lidar:
+
+Intensidad = reflectividadMaterial * CosAngIncidencia * AtenuacionAtm
+
+Pueda considerar los materiales de los vehiculos, se debe:
+
+-SETEAR CORRECTAMENTE LA STATIC MESH EN LOS BLUEPRINTS DE VEHICULOS:
+    Desde UE4
+    En Content/Carla/Blueprints/Vehicles/
+    Abrir el blueprint a modificar
+    En el editor de blueprint, a la izquierda, en Components, click en CustomCollision
+    A la derecha, en Details, modificar la Static Mesh, por la q tenga los materiales correctos
+
+    LISTA DE VEHICULOS CUYO MODELO ES UTIL:
+    (es decir que estan bien modelados, separando los diferentes materiales, y los nombres de los mismos siguen el mismo formato)
+    audiA2
+    audi etron
+    auditt
+    chevrolet impala
+    citroen c3
+    seat leon
+    mercedes benz coupe
+
+-CARGAR LOS VEHICULOS A SPAWNEAR EN EL ARCHIVO Unreal/CarlaUE4/LidarModelFiles/vehicles.json
+    Ya que solo se quiere spawnear vehiculos que tenga el BP con la static mesh correcta, y que el lidar reconozca los materiales de solo este tipo de actores:
+    -Agregar en vehicles.json, en la lista vehicles, el vehiculo q se quiera spawnear y detectar.
+    ej:
+    -"unreal_actor_name": "AudiA2",	//nombre del BP, que luego sera el nombre del actor dentro de Unreal
+    -"api_bp_name": "vehicle.audi.a2"	//nombre del campo type.id de los actores, al consultar desde la API
+
+-DETERMINAR LA REFLECTIVIDAD DE LOS MATERIALES A DETECTAR EN EL ARCHIVO Unreal/CarlaUE4/LidarModelFiles/materials.json
+    ej:
+        "materials": [
+        {
+            "name": "CarExterior",
+            "reflectivity": 0.7
+        },        
+        {
+            "name": "NoMaterial", -> reflectividad que se utilizara para los puntos que no correspondan a materiales de vehiculos
+            "reflectivity": 0.4
+        }
+    ]
