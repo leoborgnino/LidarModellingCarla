@@ -9,17 +9,18 @@ Pueda considerar los materiales de los vehiculos, se debe:
     En Content/Carla/Blueprints/Vehicles/
     Abrir el blueprint a modificar
     En el editor de blueprint, a la izquierda, en Components, click en CustomCollision
-    A la derecha, en Details, modificar la Static Mesh, por la q tenga los materiales correctos
+    A la derecha, en Details, modificar la Static Mesh, por la que tenga los materiales correctos.
+    Generalmente, la static mesh correcta se llama "SM_<nombre_del_vehiculo>"
 
-    LISTA DE VEHICULOS CUYO MODELO ES UTIL:
+    LISTA DE VEHICULOS CUYO MODELO DE STATIC MESH ES UTIL:
     (es decir que estan bien modelados, separando los diferentes materiales, y los nombres de los mismos siguen el mismo formato)
-    audiA2
-    audi etron
-    auditt
-    chevrolet impala
-    citroen c3
-    seat leon
-    mercedes benz coupe
+    -audiA2
+    -audi etron
+    -auditt
+    -chevrolet impala
+    -citroen c3
+    -seat leon
+    -mercedes benz coupe
     (Estos son los que ya estan cargados en el archivo vehicles.json, por lo que solo habria que setearles el static mesh)
 
 -CARGAR LOS VEHICULOS A SPAWNEAR EN EL ARCHIVO Unreal/CarlaUE4/LidarModelFiles/vehicles.json
