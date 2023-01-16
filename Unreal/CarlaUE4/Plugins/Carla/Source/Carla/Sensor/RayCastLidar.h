@@ -62,7 +62,7 @@ private:
   float DropOffAlpha;
   float DropOffBeta;
 
-  //Map de materialName,reflectivity para todos los materiales
+  //Map de materialName,reflectivity para todos los materiales 
   //Se lo inicializa leyendo desde un archivo json en el constructor de la clase
   TMap<FString, double> ReflectivityMap;
 
