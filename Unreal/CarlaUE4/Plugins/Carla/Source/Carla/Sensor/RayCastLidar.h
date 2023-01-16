@@ -36,6 +36,7 @@ public:
   virtual void Set(const FLidarDescription &LidarDescription) override;
 
   virtual void PostPhysTick(UWorld *World, ELevelTick TickType, float DeltaTime);
+  
 
 private:
   /// Compute the received intensity of the point
@@ -46,6 +47,7 @@ private:
   bool PostprocessDetection(FDetection& Detection) const;
 
   void ComputeAndSaveDetections(const FTransform& SensorTransform) override;
+  void WriteFile(FString String) const;
 
   FLidarData LidarData;
 
@@ -59,4 +61,20 @@ private:
   /// beta = (1 - dropoff_zero_intensity)
   float DropOffAlpha;
   float DropOffBeta;
+
+  //Map de materialName,reflectivity para todos los materiales
+  //Se lo inicializa leyendo desde un archivo json en el constructor de la clase
+  TMap<FString, double> ReflectivityMap;
+
+  //Funcion para leer un archivo json y cargar el reflectivity map
+  void LoadReflectivityMapFromJson(); 
+  //const FString JsonMaterialsPath;
+  
+  FString GetHitMaterialName(const FHitResult& HitInfo) const;
+
+  //Lista de los nombres de actores, para los cuales se van a tener en cuenta los materiales
+  //Se lo inicializa leyendo desde un archivo json en el constructor de la clase
+  TArray<FString> ActorsList;
+
+  void LoadActorsList();
 };
