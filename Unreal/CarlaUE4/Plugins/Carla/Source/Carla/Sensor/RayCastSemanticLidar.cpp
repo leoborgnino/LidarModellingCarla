@@ -226,7 +226,7 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
   const auto Range = Description.Range;
   FVector EndTrace = Range * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc;
 
-  //CAMBIOS DE MODELO 
+  //CAMBIOS DE MODELO  
   //El Trace debe ser complejo y retornar el fece index para obtener el material
   TraceParams.bTraceComplex = true;
   TraceParams.bReturnFaceIndex = true;
