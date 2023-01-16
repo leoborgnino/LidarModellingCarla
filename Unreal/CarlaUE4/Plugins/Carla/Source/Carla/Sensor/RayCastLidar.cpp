@@ -37,7 +37,7 @@ ARayCastLidar::ARayCastLidar(const FObjectInitializer& ObjectInitializer)
   //const FString JsonMaterialsPath = FPaths::ProjectContentDir() + "/JsonFiles/materials.json";
   LoadReflectivityMapFromJson();
 
-  //Cargar la lista de actores desde un archivo json
+  //Cargar la lista de actores desde un archivo json 
   LoadActorsList();
 
 }
