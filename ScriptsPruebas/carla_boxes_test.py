@@ -138,8 +138,7 @@ def save_pointcloud(pointclouds_path,pointcloud):
 def is_in_image(npc,K,w2c,image_w,image_h):
     """ Determinar si el vehiculo npc se enceuntra dentro de los limites de la imagen """
 
-    npc_center_world_pos = get_center_world_pos(npc)
-    npc_center_image_pos = w3D_to_cam2D(npc_center_world_pos,K,w2c)
+    npc_center_image_pos = w3D_to_cam2D(npc.get_transform().location,K,w2c)
 
     return (npc_center_image_pos[0] > 0.0 and  npc_center_image_pos[0] < image_w and \
             npc_center_image_pos[1] > 0.0 and  npc_center_image_pos[1] < image_h  )
@@ -155,9 +154,9 @@ def is_in_front(vehicle,npc):
     return (forward_vec.dot(ray) > 1)
 
 
-def get_center_world_pos(vehicle):
-    vehicle_world_pos = vehicle.get_transform().location
-    vehicle_world_pos.z += vehicle.bounding_box.extent.z
+#def get_center_world_pos(vehicle):
+#    vehicle_world_pos = vehicle.get_transform().location
+#    vehicle_world_pos.z += vehicle.bounding_box.extent.z
 
     return vehicle_world_pos
 
@@ -195,7 +194,7 @@ def main(arg):
         traffic_manager.set_global_distance_to_leading_vehicle(2.5) #distancia a mantener entre vehiculos
         #traffic_manager.set_hybrid_physics_mode(True) #desactiva las fisicas de los vehiculos lejanos al vehiculo hero, reduce el computo
         #traffic_manager.set_hybrid_physics_radius(100.0) #dentro de este radio, si se calculan las fisicas
-        
+        traffic_manager.global_percentage_speed_difference(80)
         delta = 0.05
         #delta = 0.1
         settings.fixed_delta_seconds = delta
@@ -222,7 +221,7 @@ def main(arg):
         vehicle = world.spawn_actor(
             blueprint=vehicle_bp,
             transform=vehicle_transform)
-        vehicle.set_autopilot(True)
+        vehicle.set_autopilot(True,traffic_manager.get_port())
 
         #las coordenadas son relativas al vehiculo
         #x es el eje correspondiente a la direccion del auto, positivo seria hacia adelante
@@ -233,9 +232,9 @@ def main(arg):
 
         lidar = world.spawn_actor(
             blueprint=lidar_bp,
-            transform=carla.Transform(carla.Location(x=-0.27, z=1.73)), #posicion segun Kitti
+            transform=carla.Transform(carla.Location(x=0.27, z=1.73)), #posicion segun Kitti
             attach_to=vehicle)
-
+        #CAMBIOS FAVORABLES - UBICACION LIDAR Y VELOCIDAD REDUCIDA
         #Funciones de callback para almacenar imagen y nube de puntos
         image_queue= Queue()
         lidar_queue= Queue()
@@ -294,7 +293,7 @@ def main(arg):
             frames_between_captures += 1
 
             #cuando se tengan ambos datos (imagen y nube de puntos) de un mismo frame, se almacenan ambos
-            if ticks > 1 and (image.frame == pointcloud.frame) and frames_between_captures==20:
+            if ticks > 1 and (image.frame == pointcloud.frame) and frames_between_captures==50:
 
                 frames_between_captures = 0
 
@@ -328,9 +327,6 @@ def main(arg):
                 
                 #Matriz de transformacion, traslacion + rotacion
                 rot_trans_matrix = np.column_stack((rot_matrix,translation_vector))
-
-                #Se agrega una fila debajo para poder operar
-                rot_trans_matrix_complet = np.row_stack((rot_trans_matrix,np.array([0,0,0,1])))
 
                 calibration_file_name = './%s/%.6d.txt' % (calib_path,frame)
                 save_calibration_matrices(calibration_file_name,K,rot_trans_matrix)
@@ -369,7 +365,7 @@ def main(arg):
                             #si lo supera, determinar oclusion
 
                             #Se obtiene la posicion del centro del vehiculo en coordenadas world3D
-                            npc_world_center_pos = get_center_world_pos(npc)
+                            npc_world_center_pos = npc.get_transform().location
                             location_bbox_lidar_coor = w3D_to_lidar3D(npc_world_center_pos,world_2_lidar)
 
                             #Bounding box 3D del vehiculo, se obtienen sus dimensiones
@@ -395,7 +391,8 @@ def main(arg):
                             rot_y_rad = math.radians(-rot_y)#de grados a radianes
 
                             #Bounding box sobre la poincloud
-                            bbox_3D_rot = rot_y_rad - np.pi/2 #porque la rot es segun el eje z y el eje x(eje y en coordenadas de camara)
+                            bbox_3D_rot = -(rot_y_rad + np.pi/2) #porque la rot es segun el eje z y el eje x(eje y en coordenadas de camara)
+                            location_bbox_lidar_coor[2] = location_bbox_lidar_coor[2] + height/2 + 0.15
                             bbox_3D_rot_matrix = o3d.geometry.get_rotation_matrix_from_xyz(np.asarray([0,0, bbox_3D_rot])) #matriz de rotation correspondiente al angulo
                             bbox_3D_extent = np.array([height,width,length]) #dimensiones largo, ancho y alto (x,y,z)
                             bbox_3D_center = np.array(location_bbox_lidar_coor) #posicion del centro de la bbox, en coordenadas de lidar
@@ -406,9 +403,10 @@ def main(arg):
                             inside_indices = bbox_3D.get_point_indices_within_bounding_box(o3d_pointcloud.points)
                             cant_points_inside = len(inside_indices)
 
-                            #DETERMINAR UMBRAL DE PUNTOS
+                            #DETERMINAR UMBRAL DE PUNTOS 
                             umbral = 10
                             npc_is_visible = (cant_points_inside > umbral)
+                            #npc_is_visible = True
 
                             if(npc_is_in_image and npc_is_visible):
                                 
