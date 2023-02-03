@@ -102,16 +102,23 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
   //MEJORAS DEL MODELO
   //Efecto del angulo del incidencia
-  
-  //Posicion del sensor
-  FVector SensorLocation = SensorTransf.GetLocation(); 
-  //Vector incidente, normalizado, entre sensor y punto de hit con el target
-  FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal(); 
-  //Vector normal a la superficie de hit, normalizado
-  FVector VectorNormal = HitInfo.ImpactNormal;
-  //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
-  float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
-  //CosAngle = sqrtf(CosAngle);
+
+  const bool ModelAngleofIncidence = Description.ModelAngleofIncidence;
+  const bool ModelMaterial = Description.ModelMaterial;
+
+  float CosAngle = 1.0;
+  if (ModelAngleofIncidence)
+  {
+    //Posicion del sensor
+    FVector SensorLocation = SensorTransf.GetLocation(); 
+    //Vector incidente, normalizado, entre sensor y punto de hit con el target
+    FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal(); 
+    //Vector normal a la superficie de hit, normalizado
+    FVector VectorNormal = HitInfo.ImpactNormal;
+    //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
+    float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
+    //CosAngle = sqrtf(CosAngle);
+  }
   
   //Efecto de la reflectividad del material
   AActor* ActorHit = HitInfo.GetActor();

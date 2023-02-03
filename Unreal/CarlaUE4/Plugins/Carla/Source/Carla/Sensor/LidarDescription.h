@@ -69,4 +69,12 @@ struct CARLA_API FLidarDescription
 
   UPROPERTY(EditAnywhere)
   float NoiseStdDev = 0.0f;
+
+  /// Model angle of incidence in LiDAR
+  UPROPERTY(EditAnywhere)
+	bool ModelAngleofIncidence = false;
+
+  /// Model material in LiDAR
+  UPROPERTY(EditAnywhere)
+	bool ModelMaterial = false;
 };
