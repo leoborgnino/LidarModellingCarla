@@ -77,4 +77,9 @@ private:
   TArray<FString> ActorsList;
 
   void LoadActorsList();
+  float GetHitCosIncAngle(const FHitResult& HitInfo, const FTransform& SensorTransf) const;
+  bool IsCriticalActor(AActor* ActorHit) const;
+  float GetMaterialReflectivityValue(FString MaterialName) const;
+  float GetHitDistance(const FHitResult& HitInfo,const FTransform& SensorTransf) const;
+  bool CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf) override;
 };

@@ -94,11 +94,12 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   const FVector HitPoint = HitInfo.ImpactPoint;
   Detection.point = SensorTransf.Inverse().TransformPosition(HitPoint);
 
-  const float Distance = Detection.point.Length();
+  const float Distance = GetHitDistance(HitInfo,SensorTransf);
 
   //Atenuacion atmosferica en base a la distancia, por defecto de CARLA
   const float AttenAtm = Description.AtmospAttenRate;
-  const float AbsAtm = exp(-AttenAtm * Distance);
+  //const float AbsAtm = exp(-AttenAtm * Distance);
+  const float AbsAtm = 1.0;
 
   //MEJORAS DEL MODELO
   //Efecto del angulo del incidencia
@@ -109,71 +110,47 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   float CosAngle = 1.0;
   if (ModelAngleofIncidence)
   {
-    //Posicion del sensor
-    FVector SensorLocation = SensorTransf.GetLocation(); 
-    //Vector incidente, normalizado, entre sensor y punto de hit con el target
-    FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal(); 
-    //Vector normal a la superficie de hit, normalizado
-    FVector VectorNormal = HitInfo.ImpactNormal;
-    //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
-    float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
-    //CosAngle = sqrtf(CosAngle);
+    CosAngle = GetHitCosIncAngle(HitInfo, SensorTransf);
   }
   
   //Efecto de la reflectividad del material
-  AActor* ActorHit = HitInfo.GetActor();
-  FString ActorHitName = ActorHit->GetName();
 
+  float Reflectivity = 1.0;
   const double* ReflectivityPointer;
-  float ReflectivityValue;
-  bool MaterialFound=false;
-  bool ActorFound = false;
 
-  //Determinar si el actor del hit, esta dentro de los actores a los cuales computar los materiales
-  for (int32 i=0; i!=ActorsList.Num();i++){
-    if(ActorHitName.Contains(ActorsList[i])){
-      ActorFound=true;
-      break;
-    }
-  }
+  if(ModelMaterial){
+    AActor* ActorHit = HitInfo.GetActor();
 
-  //Segun si el nombre del actor, corresponde a un actor al cual computar su material
-  if(ActorFound){
+    //Segun si el nombre del actor, corresponde a un actor al cual computar su material
+    bool CriticalActor = IsCriticalActor(ActorHit);
+    if(CriticalActor){
+      
+      //Se obtiene el nombre del material del hit
+      FString MaterialNameHit = GetHitMaterialName(HitInfo);
+      Reflectivity = GetMaterialReflectivityValue(MaterialNameHit);
     
-    //Se obtiene el nombre del material del hit
-    FString MaterialNameHit = GetHitMaterialName(HitInfo);
-
-    //Se recorre la lista de materiales con su respectiva reflectividad
-    for (auto& Elem : ReflectivityMap)
-    {
-      FString MaterialKey = Elem.Key;
-      //comprueba de si el nombre del material esta incluido en el material del hit
-      if(MaterialNameHit.Contains(MaterialKey)){
-        //cuando se encuentra, se obtiene el valor de reflectividad asociado a ese material
-        ReflectivityValue = (float)Elem.Value;
-        MaterialFound=true;
-        //WriteFile(MaterialNameHit);
-        break;
-      }
+    }else{
+      //Se le asigna una reflectivdad por defeto a los materiales no criticos
+      ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
+      Reflectivity = (float)*ReflectivityPointer;
     }
   }
-
-  if(!MaterialFound){
-    //Se le asigna una reflectivdad por defeto a los materiales no criticos
-    ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
-    ReflectivityValue = (float)*ReflectivityPointer;
-  }
+  
 
   //La intensidad del punto tiene en cuenta:
   //Atenuacion atmosferica -> la intensidad sera menor a mayor distancia
   //Cos Ang Incidencia -> la intensidad mientras mas perpendicular a la superficie sea el rayo incidente
   //Reflectividad del material
 
-  const float IntRec = CosAngle * AbsAtm * ReflectivityValue;
-  //const float IntRec = ReflectivityValue;
+  //const float IntRec = (100.0 * CosAngle * AbsAtm * Reflectivity / (Distance*Distance)) + RandomEngine->GetNormalDistribution(0.0f, 0.01);
+  const float IntRec = CosAngle * AbsAtm * Reflectivity;
 
-  Detection.intensity = IntRec;
-
+  if(IntRec <= 0.99){
+    Detection.intensity = IntRec;
+  }else{
+    Detection.intensity = 0.99;
+  }
+  
   return Detection;
 }
 
@@ -183,6 +160,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     for (auto ch = 0u; ch < Channels; ch++) {
       for (auto p = 0u; p < MaxPointsPerChannel; p++) {
         RayPreprocessCondition[ch][p] = !(DropOffGenActive && RandomEngine->GetUniformFloat() < Description.DropOffGenRate);
+        //RayPreprocessCondition[ch][p] = true;
       }
     }
   }
@@ -195,11 +173,14 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
       Detection.point += Noise;
     }
 
+    
     const float Intensity = Detection.intensity;
     if(Intensity > Description.DropOffIntensityLimit)
       return true;
     else
       return RandomEngine->GetUniformFloat() < DropOffAlpha * Intensity + DropOffBeta;
+    
+    //return true;
   }
 
   void ARayCastLidar::ComputeAndSaveDetections(const FTransform& SensorTransform) {
@@ -326,4 +307,87 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
     return FString(TEXT("NoMaterial"));
     
+  }
+
+  float ARayCastLidar::GetHitCosIncAngle(const FHitResult& HitInfo, const FTransform& SensorTransf) const{
+
+    const FVector HitPoint = HitInfo.ImpactPoint;
+    //Posicion del sensor
+    FVector SensorLocation = SensorTransf.GetLocation(); 
+    //Vector incidente, normalizado, entre sensor y punto de hit con el target
+    FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal(); 
+    //Vector normal a la superficie de hit, normalizado
+    FVector VectorNormal = HitInfo.ImpactNormal;
+    //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
+    float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
+    //CosAngle = sqrtf(CosAngle);
+    return CosAngle;
+  }
+
+  bool ARayCastLidar::IsCriticalActor(AActor* ActorHit) const{
+
+    FString ActorHitName = ActorHit->GetName();
+    bool ActorFound = false;
+    //Determinar si el actor del hit, esta dentro de los actores a los cuales computar los materiales
+    for (int32 i=0; i!=ActorsList.Num();i++){
+      if(ActorHitName.Contains(ActorsList[i])){
+        ActorFound=true;
+        break;
+      }
+    }
+
+    return ActorFound;
+  }
+
+  float ARayCastLidar::GetMaterialReflectivityValue(FString MaterialNameHit)const {
+
+    const double* ReflectivityPointer;
+    bool MaterialFound = false;
+    float Reflectivity = 1.0;
+    //Se recorre la lista de materiales con su respectiva reflectividad
+    for (auto& Elem : ReflectivityMap)
+    {
+      FString MaterialKey = Elem.Key;
+      //comprueba de si el nombre del material esta incluido en el material del hit
+      if(MaterialNameHit.Contains(MaterialKey)){
+        //cuando se encuentra, se obtiene el valor de reflectividad asociado a ese material
+        Reflectivity = (float)Elem.Value;
+        MaterialFound=true;
+        //WriteFile(MaterialNameHit);
+        break;
+      }
+    }
+
+    if(!MaterialFound){
+      //Se le asigna una reflectivdad por defeto a los materiales no criticos
+      ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
+      Reflectivity = (float)*ReflectivityPointer;
+    }
+
+    return Reflectivity;
+  }
+
+  float ARayCastLidar::GetHitDistance(const FHitResult& HitInfo,const FTransform& SensorTransf) const{
+
+    FDetection Detection;
+    const FVector HitPoint = HitInfo.ImpactPoint;
+    Detection.point = SensorTransf.Inverse().TransformPosition(HitPoint);
+
+    const float Distance = Detection.point.Length();
+
+    return Distance;
+  }
+
+  bool ARayCastLidar::CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf){
+
+    const float Distance = GetHitDistance(HitInfo,SensorTransf);
+    const float Reflectivity = GetMaterialReflectivityValue(GetHitMaterialName(HitInfo));
+
+    //Funcion de rango de deteccion segun reflec R(d) = a + b.d^2
+    float a = 0.0005f;
+    float b = 0.000054f;
+    float ReflectivityLimit = a + b * (Distance*Distance);
+
+    return (Reflectivity >= ReflectivityLimit);
+
   }

@@ -2,19 +2,19 @@
     "materials": [
         {
             "name": "Rubber",
-            "reflectivity": 0.3
+            "reflectivity": 0.15
         },
         {
             "name": "CarExterior",
-            "reflectivity": 0.7
+            "reflectivity": 0.58
         },        
         {
             "name": "Body",
-            "reflectivity": 0.7
+            "reflectivity": 0.58
         },
         {
             "name": "Interior",
-            "reflectivity": 0.3
+            "reflectivity": 0.15
         },
         {
             "name": "Light",
@@ -22,7 +22,7 @@
         },
         {
             "name": "Glass",
-            "reflectivity": 0.0
+            "reflectivity": 0.07
         },
         {
             "name": "LicensePlate",
@@ -30,23 +30,23 @@
         },
         {
             "name": "Aluminium",
-            "reflectivity": 0.7
+            "reflectivity": 0.92
         },
         {
             "name": "Wheel",
-            "reflectivity": 0.7
+            "reflectivity": 0.92
         },
         {
             "name": "Plastic",
-            "reflectivity": 0.5
+            "reflectivity": 0.15
         },
         {
             "name": "Grill",
-            "reflectivity": 0.5
+            "reflectivity": 0.15
         },
         {
             "name": "NoMaterial",
-            "reflectivity": 0.4
+            "reflectivity": 0.10
         }
     ]
 }

@@ -49,7 +49,7 @@ protected:
   void SimulateLidar(const float DeltaTime);
 
   /// Shoot a laser ray-trace, return whether the laser hit something.
-  bool ShootLaser(const float VerticalAngle, float HorizontalAngle, FHitResult &HitResult, FCollisionQueryParams& TraceParams) const;
+  bool ShootLaser(const float VerticalAngle, float HorizontalAngle, FHitResult &HitResult, FCollisionQueryParams& TraceParams);
 
   /// Method that allow to preprocess if the rays will be traced.
   virtual void PreprocessRays(uint32_t Channels, uint32_t MaxPointsPerChannel);
@@ -66,6 +66,9 @@ protected:
   /// This method uses all the saved FHitResults, compute the
   /// RawDetections and then send it to the LidarData structure.
   virtual void ComputeAndSaveDetections(const FTransform &SensorTransform);
+
+  //Determinar si el objetivo, esta dentro del rango segun su reflectividad
+  virtual bool CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf);
 
   UPROPERTY(EditAnywhere)
   FLidarDescription Description;

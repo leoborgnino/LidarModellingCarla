@@ -206,8 +206,12 @@ void ARayCastSemanticLidar::ComputeRawDetection(const FHitResult& HitInfo, const
     }
 }
 
+//Solo se usa en el RayCastLidar
+bool ARayCastSemanticLidar::CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf){
+  return true;
+}
 
-bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FCollisionQueryParams& TraceParams) const
+bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FCollisionQueryParams& TraceParams)
 {
   TRACE_CPUPROFILER_EVENT_SCOPE_STR(__FUNCTION__);
 
@@ -240,7 +244,7 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
     FCollisionResponseParams::DefaultResponseParam
   );
 
-  if (HitInfo.bBlockingHit) {
+  if (HitInfo.bBlockingHit && CheckDetectableReflectivity(HitInfo,ActorTransf)) {
     HitResult = HitInfo;
     return true;
   } else {
