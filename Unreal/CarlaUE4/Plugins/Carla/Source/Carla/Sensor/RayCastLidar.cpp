@@ -159,8 +159,8 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
     for (auto ch = 0u; ch < Channels; ch++) {
       for (auto p = 0u; p < MaxPointsPerChannel; p++) {
-        RayPreprocessCondition[ch][p] = !(DropOffGenActive && RandomEngine->GetUniformFloat() < Description.DropOffGenRate);
-        //RayPreprocessCondition[ch][p] = true;
+        //RayPreprocessCondition[ch][p] = !(DropOffGenActive && RandomEngine->GetUniformFloat() < Description.DropOffGenRate);
+        RayPreprocessCondition[ch][p] = true;
       }
     }
   }
@@ -173,14 +173,14 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
       Detection.point += Noise;
     }
 
-    
+    /* 
     const float Intensity = Detection.intensity;
     if(Intensity > Description.DropOffIntensityLimit)
       return true;
     else
       return RandomEngine->GetUniformFloat() < DropOffAlpha * Intensity + DropOffBeta;
-    
-    //return true;
+    */
+    return true;
   }
 
   void ARayCastLidar::ComputeAndSaveDetections(const FTransform& SensorTransform) {
