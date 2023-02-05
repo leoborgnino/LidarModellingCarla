@@ -895,6 +895,11 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   ModelMaterial.Id = TEXT("model_material");
   ModelMaterial.Type = EActorAttributeType::Bool;
   ModelMaterial.RecommendedValues = { TEXT("false") };
+  // Noise in intensity.
+  FActorVariation StdDevIntensity;
+  StdDevIntensity.Id = TEXT("noise_stddev_intensity");
+  StdDevIntensity.Type = EActorAttributeType::Float;
+  StdDevIntensity.RecommendedValues = { TEXT("0.0") };
 
   if (Id == "ray_cast") {
     Definition.Variations.Append({
@@ -912,6 +917,7 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       StdDevLidar,
       ModelAngleofIncidence,
       ModelMaterial,
+      StdDevIntensity,
       HorizontalFOV});
   }
   else if (Id == "ray_cast_semantic") {
@@ -1566,6 +1572,10 @@ void UActorBlueprintFunctionLibrary::SetLidar(
       RetrieveActorAttributeToBool("model_angle", Description.Variations, Lidar.ModelAngleofIncidence);
   Lidar.ModelMaterial =
       RetrieveActorAttributeToBool("model_material", Description.Variations, Lidar.ModelMaterial);
+  Lidar.NoiseStdDev =
+      RetrieveActorAttributeToFloat("noise_stddev", Description.Variations, Lidar.NoiseStdDev);
+  Lidar.NoiseStdDevIntensity = 
+      RetrieveActorAttributeToFloat("noise_stddev_intensity", Description.Variations, Lidar.NoiseStdDevIntensity);
 }
 
 void UActorBlueprintFunctionLibrary::SetGnss(

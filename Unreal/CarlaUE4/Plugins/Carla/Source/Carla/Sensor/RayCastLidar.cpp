@@ -98,8 +98,8 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
   //Atenuacion atmosferica en base a la distancia, por defecto de CARLA
   const float AttenAtm = Description.AtmospAttenRate;
-  //const float AbsAtm = exp(-AttenAtm * Distance);
-  const float AbsAtm = 1.0;
+  const float AbsAtm = exp(-AttenAtm * Distance);
+  //const float AbsAtm = 1.0;
 
   //MEJORAS DEL MODELO
   //Efecto del angulo del incidencia
@@ -111,6 +111,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   if (ModelAngleofIncidence)
   {
     CosAngle = GetHitCosIncAngle(HitInfo, SensorTransf);
+    CosAngle = sqrtf(CosAngle);
   }
   
   //Efecto de la reflectividad del material
@@ -141,14 +142,17 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   //Atenuacion atmosferica -> la intensidad sera menor a mayor distancia
   //Cos Ang Incidencia -> la intensidad mientras mas perpendicular a la superficie sea el rayo incidente
   //Reflectividad del material
-
-  //const float IntRec = (100.0 * CosAngle * AbsAtm * Reflectivity / (Distance*Distance)) + RandomEngine->GetNormalDistribution(0.0f, 0.01);
-  const float IntRec = CosAngle * AbsAtm * Reflectivity;
-
-  if(IntRec <= 0.99){
+  float IntensityNoiseStdDev = Description.NoiseStdDevIntensity;
+  //const float IntRec = (CosAngle * AbsAtm * Reflectivity / (Distance*Distance)) + RandomEngine->GetNormalDistribution(0.0f, IntensityNoiseStdDev);
+  //const float IntRec = (50.0 * CosAngle * AbsAtm * Reflectivity / (Distance*Distance)) + RandomEngine->GetNormalDistribution(0.0f, IntensityNoiseStdDev);
+  const float IntRec = ( CosAngle * AbsAtm * Reflectivity) + RandomEngine->GetNormalDistribution(0.0f, IntensityNoiseStdDev);
+  //const float IntRec = ReflectivityValue;
+  if(IntRec <= 0.99 && IntRec > 0.0){
     Detection.intensity = IntRec;
-  }else{
+  }else if(IntRec > 0.99){
     Detection.intensity = 0.99;
+  }else{
+    Detection.intensity = 0.0;
   }
   
   return Detection;

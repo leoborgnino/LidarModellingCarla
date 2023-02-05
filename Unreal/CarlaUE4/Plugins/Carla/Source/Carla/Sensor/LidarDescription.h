@@ -77,4 +77,9 @@ struct CARLA_API FLidarDescription
   /// Model material in LiDAR
   UPROPERTY(EditAnywhere)
 	bool ModelMaterial = false;
+
+  /// Std Dev of noise in intensity
+  UPROPERTY(EditAnywhere)
+  float NoiseStdDevIntensity = 0.0f;
+
 };
