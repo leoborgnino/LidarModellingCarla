@@ -72,14 +72,28 @@ private:
   
   FString GetHitMaterialName(const FHitResult& HitInfo) const;
 
-  //Lista de los nombres de actores, para los cuales se van a tener en cuenta los materiales
+  //Lista de los nombres de vehiculos, para los cuales se van a tener en cuenta los materiales
   //Se lo inicializa leyendo desde un archivo json en el constructor de la clase
-  TArray<FString> ActorsList;
+  TArray<FString> VehiclesList;
 
-  void LoadActorsList();
+  //Cargar la lista de vehiculos desde archivo json
+  void LoadVehiclesList();
+
+  //Calcular el angulo de incidencia del hit
   float GetHitCosIncAngle(const FHitResult& HitInfo, const FTransform& SensorTransf) const;
-  bool IsCriticalActor(AActor* ActorHit) const;
+
+  //Determinar si el actor corresponde a un vehiculo
+  bool IsCriticalVehicle(FString ActorHitName) const;
+
+  //Determinar si el actor es un peaton
+  bool IsPedestrian(FString ActorHitName) const;
+
+  //Obtener el valor de reflectividad del material
   float GetMaterialReflectivityValue(FString MaterialName) const;
+
+  //Calcular la distancia del hit
   float GetHitDistance(const FHitResult& HitInfo,const FTransform& SensorTransf) const;
+
+  //Determinar si el hit es valido, segun la refletividad y la funcion de rango
   bool CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf) override;
 };

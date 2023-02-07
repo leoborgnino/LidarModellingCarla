@@ -38,7 +38,7 @@ ARayCastLidar::ARayCastLidar(const FObjectInitializer& ObjectInitializer)
   LoadReflectivityMapFromJson();
 
   //Cargar la lista de actores desde un archivo json 
-  LoadActorsList();
+  LoadVehiclesList();
 
 }
 
@@ -111,7 +111,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   if (ModelAngleofIncidence)
   {
     CosAngle = GetHitCosIncAngle(HitInfo, SensorTransf);
-    CosAngle = sqrtf(CosAngle);
+    //CosAngle = sqrtf(CosAngle);
   }
   
   //Efecto de la reflectividad del material
@@ -121,22 +121,28 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
   if(ModelMaterial){
     AActor* ActorHit = HitInfo.GetActor();
+    FString ActorHitName = ActorHit->GetName();
 
     //Segun si el nombre del actor, corresponde a un actor al cual computar su material
-    bool CriticalActor = IsCriticalActor(ActorHit);
-    if(CriticalActor){
+    bool CriticalVehicle = IsCriticalVehicle(ActorHitName);
+    if(CriticalVehicle){
       
       //Se obtiene el nombre del material del hit
       FString MaterialNameHit = GetHitMaterialName(HitInfo);
       Reflectivity = GetMaterialReflectivityValue(MaterialNameHit);
+      //Reflectivity = 0.1;
     
-    }else{
+    }else if(IsPedestrian(ActorHitName)){
+      Reflectivity = GetMaterialReflectivityValue(TEXT("Pedestrian"));
+      //Reflectivity = 1.0;
+    }
+    else{
       //Se le asigna una reflectivdad por defeto a los materiales no criticos
-      ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
-      Reflectivity = (float)*ReflectivityPointer;
+      Reflectivity = GetMaterialReflectivityValue(TEXT("NoMaterial"));
+      //Reflectivity = 0.1;
     }
   }
-  
+
 
   //La intensidad del punto tiene en cuenta:
   //Atenuacion atmosferica -> la intensidad sera menor a mayor distancia
@@ -248,7 +254,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     }
   }
 
-  void ARayCastLidar::LoadActorsList(){
+  void ARayCastLidar::LoadVehiclesList(){
 
     //path del archivo json
     const FString FilePath = FPaths::ProjectDir() + "/LidarModelFiles/vehicles.json";
@@ -277,7 +283,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
           //de cada elemento, obtener el nombre del actor
           FString name = obj->GetStringField("unreal_actor_name");
 
-          ActorsList.Add(name);
+          VehiclesList.Add(name);
 
           GLog->Log("name:" + name);
 
@@ -288,7 +294,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   }
 
   void ARayCastLidar::WriteFile(FString String) const{
-    const FString FilePath = FPaths::ProjectContentDir() + "/JsonFiles/actores.txt";
+    const FString FilePath = FPaths::ProjectContentDir() + "/LogFiles/materiales.txt";
     FString new_String = FString::Printf( TEXT( "%s \n" ), *String);
     FFileHelper::SaveStringToFile(new_String, *FilePath,
     FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
@@ -328,19 +334,23 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     return CosAngle;
   }
 
-  bool ARayCastLidar::IsCriticalActor(AActor* ActorHit) const{
+  bool ARayCastLidar::IsCriticalVehicle(FString ActorHitName) const{
 
-    FString ActorHitName = ActorHit->GetName();
     bool ActorFound = false;
-    //Determinar si el actor del hit, esta dentro de los actores a los cuales computar los materiales
-    for (int32 i=0; i!=ActorsList.Num();i++){
-      if(ActorHitName.Contains(ActorsList[i])){
+    //Determinar si el actor del hit, esta dentro de los vevhiculos a los cuales computar los materiales
+    for (int32 i=0; i!=VehiclesList.Num();i++){
+      if(ActorHitName.Contains(VehiclesList[i])){
         ActorFound=true;
         break;
       }
     }
 
     return ActorFound;
+  }
+
+  bool ARayCastLidar::IsPedestrian(FString ActorHitName) const{
+
+    return ActorHitName.Contains(TEXT("Walker"));
   }
 
   float ARayCastLidar::GetMaterialReflectivityValue(FString MaterialNameHit)const {
