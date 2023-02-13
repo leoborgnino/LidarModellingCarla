@@ -21,6 +21,7 @@ Pueda considerar los materiales de los vehiculos, se debe:
     -citroen c3
     -seat leon
     -mercedes benz coupe
+    -road bike
     (Estos son los que ya estan cargados en el archivo vehicles.json, por lo que solo habria que setearles el static mesh)
 
 -CARGAR LOS VEHICULOS A SPAWNEAR EN EL ARCHIVO Unreal/CarlaUE4/LidarModelFiles/vehicles.json

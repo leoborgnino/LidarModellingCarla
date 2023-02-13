@@ -900,6 +900,21 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   StdDevIntensity.Id = TEXT("noise_stddev_intensity");
   StdDevIntensity.Type = EActorAttributeType::Float;
   StdDevIntensity.RecommendedValues = { TEXT("0.0") };
+  // Model Reflectance limits function
+  FActorVariation ModelReflectanceLimitsFunction;
+  ModelReflectanceLimitsFunction.Id = TEXT("model_reflectance_limits_function");
+  ModelReflectanceLimitsFunction.Type = EActorAttributeType::Bool;
+  ModelReflectanceLimitsFunction.RecommendedValues = { TEXT("false") };
+  // Coefficient a of reflectance limits function-> R(d) = a + b.d^2
+  FActorVariation ReflectanceLimitsFunctionCoeffA;
+  ReflectanceLimitsFunctionCoeffA.Id = TEXT("reflectance_limits_function_coeff_a");
+  ReflectanceLimitsFunctionCoeffA.Type = EActorAttributeType::Float;
+  ReflectanceLimitsFunctionCoeffA.RecommendedValues = { TEXT("0.0") };
+  // Coefficient b of reflectance limits function-> R(d) = a + b.d^2
+  FActorVariation ReflectanceLimitsFunctionCoeffB;
+  ReflectanceLimitsFunctionCoeffB.Id = TEXT("reflectance_limits_function_coeff_b");
+  ReflectanceLimitsFunctionCoeffB.Type = EActorAttributeType::Float;
+  ReflectanceLimitsFunctionCoeffB.RecommendedValues = { TEXT("0.0") };
 
   if (Id == "ray_cast") {
     Definition.Variations.Append({
@@ -918,6 +933,9 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       ModelAngleofIncidence,
       ModelMaterial,
       StdDevIntensity,
+      ModelReflectanceLimitsFunction,
+      ReflectanceLimitsFunctionCoeffA,
+      ReflectanceLimitsFunctionCoeffB,
       HorizontalFOV});
   }
   else if (Id == "ray_cast_semantic") {
@@ -1576,6 +1594,13 @@ void UActorBlueprintFunctionLibrary::SetLidar(
       RetrieveActorAttributeToFloat("noise_stddev", Description.Variations, Lidar.NoiseStdDev);
   Lidar.NoiseStdDevIntensity = 
       RetrieveActorAttributeToFloat("noise_stddev_intensity", Description.Variations, Lidar.NoiseStdDevIntensity);
+  Lidar.ModelReflectanceLimitsFunction =
+      RetrieveActorAttributeToBool("model_reflectance_limits_function", Description.Variations, Lidar.ModelReflectanceLimitsFunction);
+  Lidar.ReflectanceLimitsFunctionCoeffA =
+      RetrieveActorAttributeToFloat("reflectance_limits_function_coeff_a", Description.Variations, Lidar.ReflectanceLimitsFunctionCoeffA);
+  Lidar.ReflectanceLimitsFunctionCoeffB =
+      RetrieveActorAttributeToFloat("reflectance_limits_function_coeff_b", Description.Variations, Lidar.ReflectanceLimitsFunctionCoeffB);
+  
 }
 
 void UActorBlueprintFunctionLibrary::SetGnss(

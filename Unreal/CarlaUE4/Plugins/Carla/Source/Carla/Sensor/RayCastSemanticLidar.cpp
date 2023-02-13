@@ -211,6 +211,11 @@ bool ARayCastSemanticLidar::CheckDetectableReflectivity(const FHitResult& HitInf
   return true;
 }
 
+//Solo se usa en el RayCastLidar
+bool ARayCastSemanticLidar::PointOfSensorVehicle(const FHitResult& HitInfo,const FTransform& SensorTransf){
+  return false;
+}
+
 bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FCollisionQueryParams& TraceParams)
 {
   TRACE_CPUPROFILER_EVENT_SCOPE_STR(__FUNCTION__);
@@ -243,6 +248,11 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
     TraceParams,
     FCollisionResponseParams::DefaultResponseParam
   );
+
+  //eliminar puntos que son del vehiculo recolector de datos
+  if(PointOfSensorVehicle(HitInfo,ActorTransf)){
+    return false;
+  }
 
   if (HitInfo.bBlockingHit && CheckDetectableReflectivity(HitInfo,ActorTransf)) {
     HitResult = HitInfo;

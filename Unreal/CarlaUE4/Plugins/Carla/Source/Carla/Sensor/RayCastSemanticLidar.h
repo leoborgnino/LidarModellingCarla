@@ -70,6 +70,9 @@ protected:
   //Determinar si el objetivo, esta dentro del rango segun su reflectividad
   virtual bool CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf);
 
+  //Eliminar puntos que corresponden al vehiculo donde esta montado el sensor
+  virtual bool PointOfSensorVehicle(const FHitResult& HitInfo,const FTransform& SensorTransf);
+
   UPROPERTY(EditAnywhere)
   FLidarDescription Description;
 

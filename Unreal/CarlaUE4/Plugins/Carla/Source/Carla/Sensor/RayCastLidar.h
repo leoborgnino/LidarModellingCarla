@@ -88,6 +88,8 @@ private:
   //Determinar si el actor es un peaton
   bool IsPedestrian(FString ActorHitName) const;
 
+  bool IsCyclist(FString ActorHitName) const;
+
   //Obtener el valor de reflectividad del material
   float GetMaterialReflectivityValue(FString MaterialName) const;
 
@@ -96,4 +98,7 @@ private:
 
   //Determinar si el hit es valido, segun la refletividad y la funcion de rango
   bool CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf) override;
+
+  bool PointOfSensorVehicle(const FHitResult& HitInfo,const FTransform& SensorTransf) override;
+
 };

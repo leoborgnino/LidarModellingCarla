@@ -126,15 +126,18 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     //Segun si el nombre del actor, corresponde a un actor al cual computar su material
     bool CriticalVehicle = IsCriticalVehicle(ActorHitName);
     if(CriticalVehicle){
-      
       //Se obtiene el nombre del material del hit
       FString MaterialNameHit = GetHitMaterialName(HitInfo);
-      Reflectivity = GetMaterialReflectivityValue(MaterialNameHit);
-      //Reflectivity = 0.1;
-    
+      //Si el actor corresponde a un ciclista y no se obtiene material, coresponde a la parte de la persona
+      if(IsCyclist(ActorHitName) && (MaterialNameHit.Compare("NoMaterial") == 0)){
+        Reflectivity = GetMaterialReflectivityValue(TEXT("Pedestrian"));
+      }else{
+        Reflectivity = GetMaterialReflectivityValue(MaterialNameHit);
+      }
+      
     }else if(IsPedestrian(ActorHitName)){
       Reflectivity = GetMaterialReflectivityValue(TEXT("Pedestrian"));
-      //Reflectivity = 1.0;
+      //Reflectivity = 0.1;
     }
     else{
       //Se le asigna una reflectivdad por defeto a los materiales no criticos
@@ -310,8 +313,9 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
         int32 section = 0;
         UMaterialInterface* MaterialIntHit = ComponentHit->GetMaterialFromCollisionFaceIndex(HitInfo.FaceIndex, section);
 
-        return MaterialIntHit->GetName();
-
+        if(MaterialIntHit){
+          return MaterialIntHit->GetName();
+        }
       }
     }
 
@@ -353,6 +357,9 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     return ActorHitName.Contains(TEXT("Walker"));
   }
 
+  bool ARayCastLidar::IsCyclist(FString ActorHitName) const{
+    return ActorHitName.Contains(TEXT("Bike"));
+  }
   float ARayCastLidar::GetMaterialReflectivityValue(FString MaterialNameHit)const {
 
     const double* ReflectivityPointer;
@@ -393,15 +400,44 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   }
 
   bool ARayCastLidar::CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf){
+    
+    const bool ModelReflectanceLimitsFunction = Description.ModelReflectanceLimitsFunction;
 
-    const float Distance = GetHitDistance(HitInfo,SensorTransf);
-    const float Reflectivity = GetMaterialReflectivityValue(GetHitMaterialName(HitInfo));
+    if(ModelReflectanceLimitsFunction){
+      const float Distance = GetHitDistance(HitInfo,SensorTransf);
+      const float Reflectance = GetMaterialReflectivityValue(GetHitMaterialName(HitInfo));
 
-    //Funcion de rango de deteccion segun reflec R(d) = a + b.d^2
-    float a = 0.0005f;
-    float b = 0.000054f;
-    float ReflectivityLimit = a + b * (Distance*Distance);
+      //Funcion de rango de deteccion segun reflec R(d) = a + b.d^2
+      //float a = 0.0005f;
+      float a = Description.ReflectanceLimitsFunctionCoeffA;
+      //float b = 0.000054f;
+      float b = Description.ReflectanceLimitsFunctionCoeffB;
 
-    return (Reflectivity >= ReflectivityLimit);
+      float ReflectanceLimit = a + b * (Distance*Distance);
+
+      return (Reflectance >= ReflectanceLimit);
+    }else{
+
+      return true;
+    }
+    
+  }
+  
+  bool ARayCastLidar::PointOfSensorVehicle(const FHitResult& HitInfo,const FTransform& SensorTransf){
+  
+    FDetection Detection;
+    const FVector HitPoint = HitInfo.ImpactPoint;
+    Detection.point = SensorTransf.Inverse().TransformPosition(HitPoint);
+    
+    float x_limit = 2.35;
+    float y_limit = 1.15;
+    bool in_x_limits = ( FMath::Abs(Detection.point.x ) < x_limit);
+    bool in_y_limits = ( FMath::Abs(Detection.point.y ) < y_limit);
+
+    if(in_x_limits && in_y_limits){
+      return true;
+    }else{
+      return false;
+    }
 
   }
