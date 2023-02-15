@@ -415,7 +415,13 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
       float ReflectanceLimit = a + b * (Distance*Distance);
 
-      return (Reflectance >= ReflectanceLimit);
+      if(Reflectance >= ReflectanceLimit){
+        return true;
+      }else{
+        float dif = ReflectanceLimit - Reflectance;
+        return RandomEngine->GetUniformFloat() > (dif*10.0); //si da true, el punto se cuenta, mientras mas grande el dif, menos chances de contar el punto
+      }
+      
     }else{
 
       return true;
