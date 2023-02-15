@@ -76,6 +76,24 @@ def bbox_in_image(bbox_2D,image_w,image_h):
 
     return bbox_2D_in_image
 
+def is_in_image(npc,K,w2c,image_w,image_h):
+    """ Determinar si el vehiculo npc se enceuntra dentro de los limites de la imagen """
+
+    npc_center_image_pos = w3D_to_cam2D(npc.get_transform().location,K,w2c)
+
+    return (npc_center_image_pos[0] > 0.0 and  npc_center_image_pos[0] < image_w and \
+            npc_center_image_pos[1] > 0.0 and  npc_center_image_pos[1] < image_h  )
+
+def is_in_front(vehicle,npc):
+    """ Determinar si el actor se encuentra al frente del vehiculo q posee la camara """
+
+    #Prod punto entre el forward vector del vehiculo y el vector entre el vehiculo y el actor
+    forward_vec = vehicle.get_transform().get_forward_vector()
+    ray = npc.get_transform().location - vehicle.get_transform().location
+
+    #si el prod punto es mayor a 1, significa q el actor esta al frente del vehiculo
+    return (forward_vec.dot(ray) > 1)
+
 def save_calibration_matrices(filename, intrinsic_mat, extrinsic_mat):
     """ Saves the calibration matrices to a file.
         AVOD (and KITTI) refers to P as P=K*[R;t], so we will just store P.
