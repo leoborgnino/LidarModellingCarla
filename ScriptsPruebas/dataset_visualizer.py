@@ -3,6 +3,7 @@ import os
 import open3d as o3d
 import math
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 import kitti_config as cnf
 
@@ -52,22 +53,21 @@ def get_label_location(label_line):
 def get_label_rotation(label_line):
     return float(label_line[14])
 
-def plot_histogram(array_data, title,cant_bins=100):
-    #Plotear histograma
-    bins = np.linspace(math.ceil(min(array_data)), 
-                   math.floor(max(array_data)),
-                   cant_bins) # fixed number of bins
-    plt.xlim([min(array_data)-1, max(array_data)+1])
-    plt.hist(array_data, bins=bins, alpha=0.5)
-    plt.title(title)
-    plt.xlabel('variable X ({} evenly spaced bins)'.format(cant_bins))
-    plt.ylabel('count')
+def get_colors_pointcloud(intensity):
+    cmap = cm.get_cmap('gist_rainbow')
+    VIRIDIS = np.array(cmap(np.arange(0,cmap.N)))
 
-    plt.show()
+    VID_RANGE = np.linspace(0.0, 1.0, VIRIDIS.shape[0])
+    int_color = np.c_[
+        np.interp(intensity, VID_RANGE, VIRIDIS[:, 2]),
+        np.interp(intensity, VID_RANGE, VIRIDIS[:, 1]),
+        np.interp(intensity, VID_RANGE, VIRIDIS[:, 0])]
+    
+    return int_color
 
 
-DATA_DIR = '/home/gaston/Documents/Kitti/training' 
-DATA_DIR = '/media/gaston/HDD-Ubuntu/carla/ScriptsPruebas/12-02-23_19:11:40/training' 
+#DATA_DIR = '/home/gaston/Documents/Kitti/training' 
+DATA_DIR = '/media/gaston/HDD-Ubuntu/carla/ScriptsPruebas/15-02-23_12:21:07/training' 
 IMG_DIR = DATA_DIR + '/image_2'
 LABEL_DIR = DATA_DIR + '/label_2'
 POINT_CLOUD_DIR = DATA_DIR + '/velodyne'
@@ -79,18 +79,16 @@ def main():
     list_files=os.listdir(LABEL_DIR)
     
     list_files=[x.split('.')[0] for x in list_files]
-    list_files = [96]
+    list_files.sort()
+    #list_files=[1253]
 
-    cant_points_in_bbox_car = []
-    cant_points_in_bbox_pedestrian = []
+    cant_points_in_bbox = []
     cant_points_in_pc = []
-    distancias_pedestrian = []
-    intensidad_prom_pedestrian = []
     #Para cada dato
     for file in list_files:
 
         file_id = int(file)
-        
+
         img_filename = os.path.join(IMG_DIR, '{0:06d}.png'.format(file_id))
         label_filename = os.path.join(LABEL_DIR, '{0:06d}.txt'.format(file_id))
         pc_filename = os.path.join(POINT_CLOUD_DIR, '{0:06d}.bin'.format(file_id))
@@ -106,20 +104,28 @@ def main():
 
         pc = o3d.geometry.PointCloud()
         pc.points = o3d.utility.Vector3dVector(points)
+        pc.colors = o3d.utility.Vector3dVector(get_colors_pointcloud(intensity))
 
         cant_points = len(pc.points)
-        if(cant_points > 70000):
-            cant_points_in_pc.append(cant_points)
+        cant_points_in_pc.append(cant_points)
 
-        print(cant_points)
+        origin = o3d.geometry.TriangleMesh.create_coordinate_frame()
 
-        #origin = o3d.geometry.TriangleMesh.create_coordinate_frame()
-        #o3d.visualization.draw_geometries([pc,origin])
-
+        orientation_test = 0.0
+        R_test = o3d.geometry.get_rotation_matrix_from_xyz(np.asarray([0,0, orientation_test]))
+        extent_test = np.array([4.7,2.3,1.73]) #dimesiones en x,y,z (coordenadas de lidar)
+        center_test = np.array([0.0,0.0,-1.73/2]) #ubicacion del centro en x,y,z (coordenadas de lidar)
+        obb_test = o3d.geometry.OrientedBoundingBox(center_test,R_test,extent_test)
+        
         #Se analiza cada label
+        geometries = []
+        geometries.append(pc)
+        geometries.append(origin)
+        geometries.append(obb_test)
+
         for label in labels:
             type = get_label_type(label)
-            if(type == 'Car' or type == 'Pedestrian'):
+            if(type == 'Car' or type == 'Pedestrian' or type == 'Cyclist'):
                 location = get_label_location(label)
                 rotation = get_label_rotation(label)
                 dimensions = get_label_dimensions(label)
@@ -138,40 +144,13 @@ def main():
                 center = np.array(location_lidar) #ubicacion del centro en x,y,z (coordenadas de lidar)
                 obb = o3d.geometry.OrientedBoundingBox(center,R,extent)
 
-                inside_indices = obb.get_point_indices_within_bounding_box(pc.points)
-                cant_points_inside = len(inside_indices)
-                if(type=='Car'):
-                    cant_points_in_bbox_car.append(cant_points_inside)
-                if(type=='Pedestrian'):
-                    print('pedestrian detectado')
-                    #o3d.visualization.draw_geometries([pc,obb])
-                    cant_points_in_bbox_pedestrian.append(cant_points_inside)
-                    distancia = math.sqrt(location_lidar[0]**2 + location_lidar[1]**2 + location_lidar[2]**2)
-                    if(cant_points_inside > 0):
-                        prom=0
-                        for inside_indice in inside_indices:
-                            prom += intensity[inside_indice]
-                        prom /= cant_points_inside
-                        distancias_pedestrian.append(distancia)
-                        intensidad_prom_pedestrian.append(prom)
-    ''' 
-    print('pedestrians analizados: {}'.format(len(intensidad_prom_pedestrian)))
-    print(distancias_pedestrian)
-    print(intensidad_prom_pedestrian)
+                #inside_indices = obb.get_point_indices_within_bounding_box(pc.points)
+                #cant_points_inside = len(inside_indices)
+                #cant_points_in_bbox.append(cant_points_inside)
+                geometries.append(obb)
 
-    fig, ax = plt.subplots()
-    ax.scatter(distancias_pedestrian,intensidad_prom_pedestrian)
-    plt.show()
-       
-    print('Cantidad de pointclouds analizadas: ' + str(len(cant_points_in_pc)))
-    plot_histogram(cant_points_in_pc, 'Cantidad de puntos en pointclouds')
-    print('Cantidad de bbox Car analizadas: ' + str(len(cant_points_in_bbox_car)))
-    plot_histogram(cant_points_in_bbox_car, 'Cantidad de puntos en el bbox Car')
-    print('Cantidad de bbox Pedestrian analizadas: ' + str(len(cant_points_in_bbox_pedestrian)))
-    plot_histogram(cant_points_in_bbox_pedestrian, 'Cantidad de puntos en el bbox Pedestrian')
-    '''
-
-
+        
+        o3d.visualization.draw_geometries(geometries)
 
 if __name__ == "__main__":
     try: 
