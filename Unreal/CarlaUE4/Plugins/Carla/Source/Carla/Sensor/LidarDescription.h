@@ -94,4 +94,8 @@ struct CARLA_API FLidarDescription
   UPROPERTY(EditAnywhere)
   float ReflectanceLimitsFunctionCoeffB = 0.0f;
 
+  /// Model HDL64 lasers groups
+  UPROPERTY(EditAnywhere)
+	bool ModelHDL64LasersGroups = false;
+
 };

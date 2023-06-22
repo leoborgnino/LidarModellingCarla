@@ -122,7 +122,7 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
             * idxPtsOneLaser, Description.HorizontalFov) - Description.HorizontalFov / 2;
         const bool PreprocessResult = RayPreprocessCondition[idxChannel][idxPtsOneLaser];
 
-        if (PreprocessResult && ShootLaser(VertAngle, HorizAngle, HitResult, TraceParams)) {
+        if (PreprocessResult && ShootLaser(VertAngle, HorizAngle, HitResult, TraceParams,idxChannel)) {
           WritePointAsync(idxChannel, HitResult);
         }
       };
@@ -207,16 +207,29 @@ void ARayCastSemanticLidar::ComputeRawDetection(const FHitResult& HitInfo, const
 }
 
 //Solo se usa en el RayCastLidar
-bool ARayCastSemanticLidar::CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf){
+bool ARayCastSemanticLidar::CheckDetectableReflectance(const FHitResult& HitInfo,const FTransform& SensorTransf){
   return true;
 }
 
 //Solo se usa en el RayCastLidar
-bool ARayCastSemanticLidar::PointOfSensorVehicle(const FHitResult& HitInfo,const FTransform& SensorTransf){
+bool ARayCastSemanticLidar::UnderMinimumReturnDistance(const FHitResult& HitInfo,const FTransform& SensorTransf){
   return false;
 }
 
-bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FCollisionQueryParams& TraceParams)
+//Solo se usa en el RayCastLidar
+FVector ARayCastSemanticLidar::GetShootLoc(FVector LidarBodyLoc, FRotator ResultRot, int32 idxChannel){
+  return LidarBodyLoc;
+}
+
+//Solo se usa en el RayCastLidar
+float ARayCastSemanticLidar::GetHitDistance(const FHitResult& HitInfo,const FTransform& SensorTransf){
+  return 0.0;
+}
+
+//Solo se usa en el RayCastLidar
+bool ARayCastSemanticLidar::WriteFile(FString Filename, FString String){return true;}
+
+bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FCollisionQueryParams& TraceParams, int32 idxChannel)
 {
   TRACE_CPUPROFILER_EVENT_SCOPE_STR(__FUNCTION__);
 
@@ -235,26 +248,51 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
   const auto Range = Description.Range;
   FVector EndTrace = Range * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc;
 
+  //Calcular la posicion del disparo segun el canal
+  FVector ShootLoc = GetShootLoc(LidarBodyLoc, ResultRot, idxChannel);
+
   //CAMBIOS DE MODELO  
   //El Trace debe ser complejo y retornar el fece index para obtener el material
   TraceParams.bTraceComplex = true;
   TraceParams.bReturnFaceIndex = true;
 
+  double TimeStampStart = FPlatformTime::Seconds() * 1000.0;
+
   GetWorld()->ParallelLineTraceSingleByChannel(
     HitInfo,
-    LidarBodyLoc,
+    ShootLoc,
     EndTrace,
     ECC_GameTraceChannel2,
     TraceParams,
     FCollisionResponseParams::DefaultResponseParam
   );
 
+  double TimeStampEnd = FPlatformTime::Seconds() * 1000.0;
+  double TimeTrace = TimeStampEnd - TimeStampStart;
+
+  float DistanceTrace = GetHitDistance(HitInfo,ActorTransf);
+
+  //nombre del archivo para log
+  FString NameLogFile = TEXT("Log_channel_") + FString::FromInt(idxChannel) + TEXT(".txt");
+  //tiempo del disparo para log
+  FString TimeLog = TEXT("Tiempo:") +FString::SanitizeFloat(TimeTrace);
+  //ditancia del disparo para log
+  FString DistLog = TEXT("Distancia:") +FString::SanitizeFloat(DistanceTrace);
+
+  WriteFile(NameLogFile,DistLog);
+  WriteFile(NameLogFile,TimeLog);
+
   //eliminar puntos que son del vehiculo recolector de datos
-  if(PointOfSensorVehicle(HitInfo,ActorTransf)){
+  if(UnderMinimumReturnDistance(HitInfo,ActorTransf)){
     return false;
   }
 
-  if (HitInfo.bBlockingHit && CheckDetectableReflectivity(HitInfo,ActorTransf)) {
+  //determinar si el punto corresponde a una reflectancia detectable
+  if(!CheckDetectableReflectance(HitInfo,ActorTransf)){
+    return false;
+  }
+
+  if (HitInfo.bBlockingHit) {
     HitResult = HitInfo;
     return true;
   } else {

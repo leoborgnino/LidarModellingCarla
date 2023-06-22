@@ -49,7 +49,7 @@ protected:
   void SimulateLidar(const float DeltaTime);
 
   /// Shoot a laser ray-trace, return whether the laser hit something.
-  bool ShootLaser(const float VerticalAngle, float HorizontalAngle, FHitResult &HitResult, FCollisionQueryParams& TraceParams);
+  bool ShootLaser(const float VerticalAngle, float HorizontalAngle, FHitResult &HitResult, FCollisionQueryParams& TraceParams, int32 idxChannel);
 
   /// Method that allow to preprocess if the rays will be traced.
   virtual void PreprocessRays(uint32_t Channels, uint32_t MaxPointsPerChannel);
@@ -68,10 +68,19 @@ protected:
   virtual void ComputeAndSaveDetections(const FTransform &SensorTransform);
 
   //Determinar si el objetivo, esta dentro del rango segun su reflectividad
-  virtual bool CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf);
+  virtual bool CheckDetectableReflectance(const FHitResult& HitInfo,const FTransform& SensorTransf);
 
   //Eliminar puntos que corresponden al vehiculo donde esta montado el sensor
-  virtual bool PointOfSensorVehicle(const FHitResult& HitInfo,const FTransform& SensorTransf);
+  virtual bool UnderMinimumReturnDistance(const FHitResult& HitInfo,const FTransform& SensorTransf);
+
+  //Calcular distancia del hit
+  virtual float GetHitDistance(const FHitResult& HitInfo,const FTransform& SensorTransf);
+
+  //Log in file
+  virtual bool WriteFile(FString Filename, FString String);
+  
+  //Calcular el loc de disparo segun el canal
+  virtual FVector GetShootLoc(FVector LidarBodyLoc, FRotator ResultRot, int32 idxChannel);
 
   UPROPERTY(EditAnywhere)
   FLidarDescription Description;

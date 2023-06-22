@@ -915,6 +915,11 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   ReflectanceLimitsFunctionCoeffB.Id = TEXT("reflectance_limits_function_coeff_b");
   ReflectanceLimitsFunctionCoeffB.Type = EActorAttributeType::Float;
   ReflectanceLimitsFunctionCoeffB.RecommendedValues = { TEXT("0.0") };
+  // Model HDL64 lasers groups
+  FActorVariation ModelHDL64LasersGroups;
+  ModelHDL64LasersGroups.Id = TEXT("model_HDL64_lasers_groups");
+  ModelHDL64LasersGroups.Type = EActorAttributeType::Bool;
+  ModelHDL64LasersGroups.RecommendedValues = { TEXT("false") };
 
   if (Id == "ray_cast") {
     Definition.Variations.Append({
@@ -936,6 +941,7 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       ModelReflectanceLimitsFunction,
       ReflectanceLimitsFunctionCoeffA,
       ReflectanceLimitsFunctionCoeffB,
+      ModelHDL64LasersGroups,
       HorizontalFOV});
   }
   else if (Id == "ray_cast_semantic") {
@@ -1600,7 +1606,8 @@ void UActorBlueprintFunctionLibrary::SetLidar(
       RetrieveActorAttributeToFloat("reflectance_limits_function_coeff_a", Description.Variations, Lidar.ReflectanceLimitsFunctionCoeffA);
   Lidar.ReflectanceLimitsFunctionCoeffB =
       RetrieveActorAttributeToFloat("reflectance_limits_function_coeff_b", Description.Variations, Lidar.ReflectanceLimitsFunctionCoeffB);
-  
+  Lidar.ModelHDL64LasersGroups =
+      RetrieveActorAttributeToBool("model_HDL64_lasers_groups", Description.Variations, Lidar.ModelHDL64LasersGroups);
 }
 
 void UActorBlueprintFunctionLibrary::SetGnss(

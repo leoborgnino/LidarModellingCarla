@@ -33,9 +33,9 @@ ARayCastLidar::ARayCastLidar(const FObjectInitializer& ObjectInitializer)
   RandomEngine = CreateDefaultSubobject<URandomEngine>(TEXT("RandomEngine"));
   SetSeed(Description.RandomSeed);
 
-  //Cargar el reflectivitymap desde un archivo json
+  //Cargar el Reflectancemap desde un archivo json
   //const FString JsonMaterialsPath = FPaths::ProjectContentDir() + "/JsonFiles/materials.json";
-  LoadReflectivityMapFromJson();
+  LoadReflectanceMapFromJson();
 
   //Cargar la lista de actores desde un archivo json 
   LoadVehiclesList();
@@ -94,7 +94,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   const FVector HitPoint = HitInfo.ImpactPoint;
   Detection.point = SensorTransf.Inverse().TransformPosition(HitPoint);
 
-  const float Distance = GetHitDistance(HitInfo,SensorTransf);
+  const float Distance = GetHitDistanceConst(HitInfo,SensorTransf);
 
   //Atenuacion atmosferica en base a la distancia, por defecto de CARLA
   const float AttenAtm = Description.AtmospAttenRate;
@@ -111,13 +111,13 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   if (ModelAngleofIncidence)
   {
     CosAngle = GetHitCosIncAngle(HitInfo, SensorTransf);
-    //CosAngle = sqrtf(CosAngle);
+    CosAngle = sqrtf(CosAngle);
   }
   
   //Efecto de la reflectividad del material
 
-  float Reflectivity = 1.0;
-  const double* ReflectivityPointer;
+  float Reflectance = 1.0;
+  const double* ReflectancePointer;
 
   if(ModelMaterial){
     AActor* ActorHit = HitInfo.GetActor();
@@ -130,22 +130,21 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
       FString MaterialNameHit = GetHitMaterialName(HitInfo);
       //Si el actor corresponde a un ciclista y no se obtiene material, coresponde a la parte de la persona
       if(IsCyclist(ActorHitName) && (MaterialNameHit.Compare("NoMaterial") == 0)){
-        Reflectivity = GetMaterialReflectivityValue(TEXT("Pedestrian"));
+        Reflectance = GetMaterialReflectanceValue(TEXT("Pedestrian"));
       }else{
-        Reflectivity = GetMaterialReflectivityValue(MaterialNameHit);
+        Reflectance = GetMaterialReflectanceValue(MaterialNameHit);
       }
       
     }else if(IsPedestrian(ActorHitName)){
-      Reflectivity = GetMaterialReflectivityValue(TEXT("Pedestrian"));
+      Reflectance = GetMaterialReflectanceValue(TEXT("Pedestrian"));
       //Reflectivity = 0.1;
     }
     else{
       //Se le asigna una reflectivdad por defeto a los materiales no criticos
-      Reflectivity = GetMaterialReflectivityValue(TEXT("NoMaterial"));
+      Reflectance = GetMaterialReflectanceValue(TEXT("NoMaterial"));
       //Reflectivity = 0.1;
     }
   }
-
 
   //La intensidad del punto tiene en cuenta:
   //Atenuacion atmosferica -> la intensidad sera menor a mayor distancia
@@ -154,7 +153,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   float IntensityNoiseStdDev = Description.NoiseStdDevIntensity;
   //const float IntRec = (CosAngle * AbsAtm * Reflectivity / (Distance*Distance)) + RandomEngine->GetNormalDistribution(0.0f, IntensityNoiseStdDev);
   //const float IntRec = (50.0 * CosAngle * AbsAtm * Reflectivity / (Distance*Distance)) + RandomEngine->GetNormalDistribution(0.0f, IntensityNoiseStdDev);
-  const float IntRec = ( CosAngle * AbsAtm * Reflectivity) + RandomEngine->GetNormalDistribution(0.0f, IntensityNoiseStdDev);
+  const float IntRec = (CosAngle * AbsAtm * Reflectance ) + RandomEngine->GetNormalDistribution(0.0f, IntensityNoiseStdDev);
   //const float IntRec = ReflectivityValue;
   if(IntRec <= 0.99 && IntRec > 0.0){
     Detection.intensity = IntRec;
@@ -172,8 +171,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
     for (auto ch = 0u; ch < Channels; ch++) {
       for (auto p = 0u; p < MaxPointsPerChannel; p++) {
-        //RayPreprocessCondition[ch][p] = !(DropOffGenActive && RandomEngine->GetUniformFloat() < Description.DropOffGenRate);
-        RayPreprocessCondition[ch][p] = true;
+        RayPreprocessCondition[ch][p] = !(DropOffGenActive && RandomEngine->GetUniformFloat() < Description.DropOffGenRate);
       }
     }
   }
@@ -216,8 +214,8 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   }
 
   //Funcion implementada para leer desde un json, la reflectividad asociada a cada material
-  //y cargarlo en el ReflectivityMap
-  void ARayCastLidar::LoadReflectivityMapFromJson(){
+  //y cargarlo en el ReflectanceMap
+  void ARayCastLidar::LoadReflectanceMapFromJson(){
 
     //path del archivo json
     const FString FilePath = FPaths::ProjectDir() + "/LidarModelFiles/materials.json";
@@ -248,7 +246,7 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
           double reflec = obj->GetNumberField("reflectivity");
 
           //cargar en el ReflectivityMap
-          ReflectivityMap.Add(name,reflec);
+          ReflectanceMap.Add(name,reflec);
 
           GLog->Log("name:" + name);
           GLog->Log("reflectivity:" + FString::SanitizeFloat(reflec));
@@ -296,12 +294,14 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
   }
 
-  void ARayCastLidar::WriteFile(FString String) const{
-    const FString FilePath = FPaths::ProjectContentDir() + "/LogFiles/materiales.txt";
+  bool ARayCastLidar::WriteFile(FString Filename, FString String) {
+    const FString FilePath = FPaths::ProjectContentDir() + TEXT("/LogFiles/") + Filename;
+
     FString new_String = FString::Printf( TEXT( "%s \n" ), *String);
     FFileHelper::SaveStringToFile(new_String, *FilePath,
     FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
 
+    return true;
   }
 
   FString ARayCastLidar::GetHitMaterialName(const FHitResult& HitInfo) const{
@@ -360,19 +360,19 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   bool ARayCastLidar::IsCyclist(FString ActorHitName) const{
     return ActorHitName.Contains(TEXT("Bike"));
   }
-  float ARayCastLidar::GetMaterialReflectivityValue(FString MaterialNameHit)const {
+  float ARayCastLidar::GetMaterialReflectanceValue(FString MaterialNameHit)const {
 
-    const double* ReflectivityPointer;
+    const double* ReflectancePointer;
     bool MaterialFound = false;
-    float Reflectivity = 1.0;
+    float Reflectance = 1.0;
     //Se recorre la lista de materiales con su respectiva reflectividad
-    for (auto& Elem : ReflectivityMap)
+    for (auto& Elem : ReflectanceMap)
     {
       FString MaterialKey = Elem.Key;
       //comprueba de si el nombre del material esta incluido en el material del hit
       if(MaterialNameHit.Contains(MaterialKey)){
         //cuando se encuentra, se obtiene el valor de reflectividad asociado a ese material
-        Reflectivity = (float)Elem.Value;
+        Reflectance = (float)Elem.Value;
         MaterialFound=true;
         //WriteFile(MaterialNameHit);
         break;
@@ -381,14 +381,25 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
 
     if(!MaterialFound){
       //Se le asigna una reflectivdad por defeto a los materiales no criticos
-      ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
-      Reflectivity = (float)*ReflectivityPointer;
+      ReflectancePointer = ReflectanceMap.Find(TEXT("NoMaterial"));
+      Reflectance = (float)*ReflectancePointer;
     }
 
-    return Reflectivity;
+    return Reflectance;
   }
 
-  float ARayCastLidar::GetHitDistance(const FHitResult& HitInfo,const FTransform& SensorTransf) const{
+  float ARayCastLidar::GetHitDistance(const FHitResult& HitInfo,const FTransform& SensorTransf){
+
+    FDetection Detection;
+    const FVector HitPoint = HitInfo.ImpactPoint;
+    Detection.point = SensorTransf.Inverse().TransformPosition(HitPoint);
+
+    float Distance = Detection.point.Length();
+
+    return Distance;
+  }
+
+  float ARayCastLidar::GetHitDistanceConst(const FHitResult& HitInfo,const FTransform& SensorTransf) const{
 
     FDetection Detection;
     const FVector HitPoint = HitInfo.ImpactPoint;
@@ -399,13 +410,13 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     return Distance;
   }
 
-  bool ARayCastLidar::CheckDetectableReflectivity(const FHitResult& HitInfo,const FTransform& SensorTransf){
+  bool ARayCastLidar::CheckDetectableReflectance(const FHitResult& HitInfo,const FTransform& SensorTransf){
     
     const bool ModelReflectanceLimitsFunction = Description.ModelReflectanceLimitsFunction;
 
     if(ModelReflectanceLimitsFunction){
-      const float Distance = GetHitDistance(HitInfo,SensorTransf);
-      const float Reflectance = GetMaterialReflectivityValue(GetHitMaterialName(HitInfo));
+      float Distance = GetHitDistance(HitInfo,SensorTransf);
+      const float Reflectance = GetMaterialReflectanceValue(GetHitMaterialName(HitInfo));
 
       //Funcion de rango de deteccion segun reflec R(d) = a + b.d^2
       //float a = 0.0005f;
@@ -419,7 +430,10 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
         return true;
       }else{
         float dif = ReflectanceLimit - Reflectance;
-        return RandomEngine->GetUniformFloat() > (dif*10.0); //si da true, el punto se cuenta, mientras mas grande el dif, menos chances de contar el punto
+        float RangeRandom = 0.5 * ReflectanceLimit; //ancho del rango de reflectancia por debajo del umbral, donde el comportamiento es aleatorio
+        if(RangeRandom > 0.15){
+          RangeRandom = 0.15;}
+        return RandomEngine->GetUniformFloat() > (dif/RangeRandom); //si da true, el punto se cuenta, mientras mas grande el dif, menos chances de contar el punto
       }
       
     }else{
@@ -429,21 +443,86 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
     
   }
   
-  bool ARayCastLidar::PointOfSensorVehicle(const FHitResult& HitInfo,const FTransform& SensorTransf){
-  
-    FDetection Detection;
-    const FVector HitPoint = HitInfo.ImpactPoint;
-    Detection.point = SensorTransf.Inverse().TransformPosition(HitPoint);
-    
-    float x_limit = 2.35;
-    float y_limit = 1.15;
-    bool in_x_limits = ( FMath::Abs(Detection.point.x ) < x_limit);
-    bool in_y_limits = ( FMath::Abs(Detection.point.y ) < y_limit);
+  bool ARayCastLidar::UnderMinimumReturnDistance(const FHitResult& HitInfo,const FTransform& SensorTransf){
+    //descartar puntos que estan por debajo de la minima
+    float Distance = GetHitDistance(HitInfo,SensorTransf);
+    float MinimumReturnDistance = 2.5;
 
-    if(in_x_limits && in_y_limits){
-      return true;
+    return (Distance <= MinimumReturnDistance);
+  }
+
+  FVector ARayCastLidar::GetShootLoc(FVector LidarBodyLoc, FRotator ResultRot, int32 idxChannel){
+    //Calcular el punto de disparo de los laser segun el canal
+    
+    if(Description.ModelHDL64LasersGroups){
+      //HDL64 divide los 64 lasers en 2 bloques (upper y lower), con 2 grupos(left y right).
+
+      float VerticalDistance = 2.5;//entre bloques, verticalmente hay 5 cm de distancia, desde el centro seria la mitad
+      
+      FVector UpTrans= FVector(0.0,0.0,VerticalDistance);
+      FVector DownTrans= FVector(0.0,0.0,-1.0*VerticalDistance);
+
+      //Ubicacion del centro de los bloques upper y lower
+      FVector UpperBlockLoc = UpTrans + LidarBodyLoc;
+      FVector LowerBlockLoc = DownTrans + LidarBodyLoc;
+
+      //Para determinar la posicion de los grupo left y right, se tiene en cuenta la orientacion del sensor
+      //y se obtiene el rightVector y leftVector de esa orientacion.
+
+      float HorizontalDistance = 2.5; //entre lentes, horizontalmente hay 5 cm de distancia, desde el centro seria la mitad
+      FVector RigthGroupTrans = HorizontalDistance * UKismetMathLibrary::GetRightVector(ResultRot);
+      FVector LeftGroupTrans = HorizontalDistance * -1.0 * UKismetMathLibrary::GetRightVector(ResultRot);
+
+      //Ubicacion de cada grupo, desplazando la ubicacion del centro de cada bloque, a la izquierda o derecha
+      FVector UpperRigthGroupLoc = UpperBlockLoc + RigthGroupTrans;
+      FVector UpperLeftGroupLoc = UpperBlockLoc + LeftGroupTrans;
+      FVector LowerRigthGroupLoc = LowerBlockLoc + RigthGroupTrans;
+      FVector LowerLeftGroupLoc = LowerBlockLoc + LeftGroupTrans;
+
+      int32 GroupOfLaser = GetGroupOfChannel(idxChannel);
+      //0: UpperLeft
+      //1: UpperRigth
+      //2: LowerLeft
+      //3: LowerRigth
+
+      switch(GroupOfLaser){
+        case 0:
+          return UpperLeftGroupLoc;
+        case 1:
+          return UpperRigthGroupLoc;
+        case 2:
+          return LowerLeftGroupLoc;
+        case 3:
+          return LowerRigthGroupLoc;
+      }
+    }
+      
+    return LidarBodyLoc;
+  }
+
+  int32 ARayCastLidar::GetGroupOfChannel(int32 idxChannel){
+    //Determinar a que grupo corresponde cada canal para el HDL64
+    //Segun el manual:
+    //0 a 31: upper block, pares left, impares rigth
+    //32 a 63: lower block, pares left, impares rigth
+    //Se asigna un numero a cada grupo: 
+    //0: UpperLeft
+    //1: UpperRigth
+    //2: LowerLeft
+    //3: LowerRigth
+
+    if(idxChannel < 32){
+      if(idxChannel%2 == 0){
+        return 0;
+      }else{
+        return 1;
+      }
     }else{
-      return false;
+      if(idxChannel%2 == 0){
+        return 2;
+      }else{
+        return 3;
+      }
     }
 
   }
