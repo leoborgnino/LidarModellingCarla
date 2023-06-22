@@ -54,23 +54,31 @@ def get_label_rotation(label_line):
     return float(label_line[14])
 
 def get_colors_pointcloud(intensity):
-    cmap = cm.get_cmap('gist_rainbow')
+    cmap = cm.get_cmap('plasma')
     VIRIDIS = np.array(cmap(np.arange(0,cmap.N)))
 
     VID_RANGE = np.linspace(0.0, 1.0, VIRIDIS.shape[0])
+    #int_color = np.c_[
+    #    np.interp(intensity, VID_RANGE, VIRIDIS[:, 2]),
+    #    np.interp(intensity, VID_RANGE, VIRIDIS[:, 1]),
+    #    np.interp(intensity, VID_RANGE, VIRIDIS[:, 0])]
+    
     int_color = np.c_[
-        np.interp(intensity, VID_RANGE, VIRIDIS[:, 2]),
+        np.interp(intensity, VID_RANGE, VIRIDIS[:, 0]),
         np.interp(intensity, VID_RANGE, VIRIDIS[:, 1]),
-        np.interp(intensity, VID_RANGE, VIRIDIS[:, 0])]
+        np.interp(intensity, VID_RANGE, VIRIDIS[:, 2])]
     
     return int_color
 
 
-#DATA_DIR = '/home/gaston/Documents/Kitti/training' 
-DATA_DIR = '/media/gaston/HDD-Ubuntu/carla/ScriptsPruebas/15-02-23_12:21:07/training' 
+#DATA_DIR = '/home/gaston/Documents/Kitti' 
+DATA_DIR = '/media/gaston/HDD-Ubuntu/carla/ScriptsPruebas/scripts/28-03-23_16:57:59/' 
+#DATA_DIR = '/media/gaston/HDD-Ubuntu/carla/ScriptsPruebas/Complex-YOLOv4-Pytorch/dataset/kitti/'
 IMG_DIR = DATA_DIR + '/image_2'
-LABEL_DIR = DATA_DIR + '/label_2'
-POINT_CLOUD_DIR = DATA_DIR + '/velodyne'
+#LABEL_DIR = DATA_DIR + '/training_filter_minpoints_C2P2C2/label_2'
+LABEL_DIR = DATA_DIR + '/training/label_2'
+POINT_CLOUD_DIR = DATA_DIR + '/training/velodyne'
+#POINT_CLOUD_DIR = DATA_DIR + '/velodyne_carla'
 CALIB_DIR = DATA_DIR + '/calib'
 
 def main():
@@ -80,7 +88,7 @@ def main():
     
     list_files=[x.split('.')[0] for x in list_files]
     list_files.sort()
-    #list_files=[1253]
+    #list_files=[1796]
 
     cant_points_in_bbox = []
     cant_points_in_pc = []

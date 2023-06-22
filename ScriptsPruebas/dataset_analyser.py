@@ -67,7 +67,7 @@ def plot_histogram(array_data, title,cant_bins=100):
 
 
 DATA_DIR = '/home/gaston/Documents/Kitti/training' 
-DATA_DIR = '/media/gaston/HDD-Ubuntu/carla/ScriptsPruebas/12-02-23_19:11:40/training' 
+#DATA_DIR = '/media/gaston/HDD-Ubuntu/carla/ScriptsPruebas/21-02-23_19:47:04/training' 
 IMG_DIR = DATA_DIR + '/image_2'
 LABEL_DIR = DATA_DIR + '/label_2'
 POINT_CLOUD_DIR = DATA_DIR + '/velodyne'
@@ -79,10 +79,11 @@ def main():
     list_files=os.listdir(LABEL_DIR)
     
     list_files=[x.split('.')[0] for x in list_files]
-    list_files = [96]
+    #list_files = [96]
 
     cant_points_in_bbox_car = []
     cant_points_in_bbox_pedestrian = []
+    cant_points_in_bbox_ciclyst = []
     cant_points_in_pc = []
     distancias_pedestrian = []
     intensidad_prom_pedestrian = []
@@ -141,11 +142,18 @@ def main():
                 inside_indices = obb.get_point_indices_within_bounding_box(pc.points)
                 cant_points_inside = len(inside_indices)
                 if(type=='Car'):
+                    if(cant_points_inside < 10):
+                        print(file_id)
+                        #o3d.visualization.draw_geometries([pc,obb])
                     cant_points_in_bbox_car.append(cant_points_inside)
                 if(type=='Pedestrian'):
                     print('pedestrian detectado')
-                    #o3d.visualization.draw_geometries([pc,obb])
-                    cant_points_in_bbox_pedestrian.append(cant_points_inside)
+                    if(cant_points_inside < 100):
+                    
+                        cant_points_in_bbox_pedestrian.append(cant_points_inside)
+                    if(cant_points_inside < 20):
+                        print(file_id)
+                        #o3d.visualization.draw_geometries([pc,obb])
                     distancia = math.sqrt(location_lidar[0]**2 + location_lidar[1]**2 + location_lidar[2]**2)
                     if(cant_points_inside > 0):
                         prom=0
@@ -154,7 +162,9 @@ def main():
                         prom /= cant_points_inside
                         distancias_pedestrian.append(distancia)
                         intensidad_prom_pedestrian.append(prom)
-    ''' 
+                if(type=='Cyclist'):
+                    cant_points_in_bbox_ciclyst.append(cant_points_inside)
+    '''
     print('pedestrians analizados: {}'.format(len(intensidad_prom_pedestrian)))
     print(distancias_pedestrian)
     print(intensidad_prom_pedestrian)
@@ -162,14 +172,18 @@ def main():
     fig, ax = plt.subplots()
     ax.scatter(distancias_pedestrian,intensidad_prom_pedestrian)
     plt.show()
+
        
     print('Cantidad de pointclouds analizadas: ' + str(len(cant_points_in_pc)))
     plot_histogram(cant_points_in_pc, 'Cantidad de puntos en pointclouds')
     print('Cantidad de bbox Car analizadas: ' + str(len(cant_points_in_bbox_car)))
     plot_histogram(cant_points_in_bbox_car, 'Cantidad de puntos en el bbox Car')
-    print('Cantidad de bbox Pedestrian analizadas: ' + str(len(cant_points_in_bbox_pedestrian)))
-    plot_histogram(cant_points_in_bbox_pedestrian, 'Cantidad de puntos en el bbox Pedestrian')
     '''
+    print('Cantidad de bbox Pedestrian analizadas: ' + str(len(cant_points_in_bbox_pedestrian)))
+    plot_histogram(cant_points_in_bbox_pedestrian, 'Cantidad de puntos en el bbox Pedestrian',100)
+    print(min(cant_points_in_bbox_pedestrian))
+    print(min(cant_points_in_bbox_ciclyst))
+
 
 
 
