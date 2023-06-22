@@ -26,7 +26,9 @@ except IndexError:
 
 import carla
 
-from camera_utils import build_projection_matrix, w3D_to_cam3D, w3D_to_cam2D, bbox_in_image,w3D_to_lidar3D, save_calibration_matrices
+from transformation_utils import build_projection_matrix, w3D_to_cam3D, w3D_to_cam2D, bbox_in_image,w3D_to_lidar3D, save_calibration_matrices, is_in_image, is_in_front
+from carla_utils import generate_lidar_bp,generate_camera_bp, spawn_vehicles, save_image, save_pointcloud, sensor_callback
+
 from kitti_label import KittiLabel
 
 """ OUTPUT FOLDERS """
@@ -44,27 +46,10 @@ LABEL_PATH = os.path.join(OUTPUT_FOLDER, 'label_2/{0:06}.txt')
 IMAGE_PATH = os.path.join(OUTPUT_FOLDER, 'image_2/{0:06}.png')
 CALIBRATION_PATH = os.path.join(OUTPUT_FOLDER, 'calib/{0:06}.txt')
 
+"""
 
 def sensor_callback(data,queue):
     queue.put(data)
-
-
-def create_output_folders():
-    current_datetime = datetime.now().strftime("%d-%m-%y_%X")
-    output_directory = os.path.join(current_datetime,OUTPUT_FOLDER)
-
-    images_path = create_folder(output_directory, IMAGES_FOLDER)
-    pointcloud_path = create_folder(output_directory, POINTCLOUDS_FOLDER)
-    calib_path = create_folder(output_directory, CALIB_FOLDER)
-    labels_path = create_folder(output_directory, LABELS_FOLDER)
-
-    return images_path,pointcloud_path,calib_path,labels_path
-
-def create_folder(output_directory,folder):
-    output_folder = os.path.join(output_directory,folder)
-    os.makedirs(output_folder)
-
-    return output_folder
 
 def generate_lidar_bp(blueprint_library,delta):
     lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
@@ -136,7 +121,7 @@ def save_pointcloud(pointclouds_path,pointcloud):
     #print('point cloud %.6d.bin guardada' % lidar_data.frame)
 
 def is_in_image(npc,K,w2c,image_w,image_h):
-    """ Determinar si el vehiculo npc se enceuntra dentro de los limites de la imagen """
+    "" Determinar si el vehiculo npc se enceuntra dentro de los limites de la imagen ""
 
     npc_center_image_pos = w3D_to_cam2D(npc.get_transform().location,K,w2c)
 
@@ -144,7 +129,7 @@ def is_in_image(npc,K,w2c,image_w,image_h):
             npc_center_image_pos[1] > 0.0 and  npc_center_image_pos[1] < image_h  )
 
 def is_in_front(vehicle,npc):
-    """ Determinar si el actor se encuentra al frente del vehiculo q posee la camara """
+    "" Determinar si el actor se encuentra al frente del vehiculo q posee la camara ""
 
     #Prod punto entre el forward vector del vehiculo y el vector entre el vehiculo y el actor
     forward_vec = vehicle.get_transform().get_forward_vector()
@@ -153,12 +138,23 @@ def is_in_front(vehicle,npc):
     #si el prod punto es mayor a 1, significa q el actor esta al frente del vehiculo
     return (forward_vec.dot(ray) > 1)
 
+"""
+def create_folder(output_directory,folder):
+    output_folder = os.path.join(output_directory,folder)
+    os.makedirs(output_folder)
 
-#def get_center_world_pos(vehicle):
-#    vehicle_world_pos = vehicle.get_transform().location
-#    vehicle_world_pos.z += vehicle.bounding_box.extent.z
+    return output_folder
 
-    return vehicle_world_pos
+def create_output_folders():
+    current_datetime = datetime.now().strftime("%d-%m-%y_%X")
+    output_directory = os.path.join(current_datetime,OUTPUT_FOLDER)
+
+    images_path = create_folder(output_directory, IMAGES_FOLDER)
+    pointcloud_path = create_folder(output_directory, POINTCLOUDS_FOLDER)
+    calib_path = create_folder(output_directory, CALIB_FOLDER)
+    labels_path = create_folder(output_directory, LABELS_FOLDER)
+
+    return images_path,pointcloud_path,calib_path,labels_path
 
 def load_list_of_vehicles():
     file = open(LIST_VEHICLES_PATH)

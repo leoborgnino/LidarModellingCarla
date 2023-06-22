@@ -38,7 +38,7 @@ POINTCLOUDS_FOLDER = "velodyne"
 LABELS_FOLDER = "label_2"
 CALIB_FOLDER = "calib"
 
-LIST_VEHICLES_PATH = "../Unreal/CarlaUE4/LidarModelFiles/vehicles.json"
+LIST_VEHICLES_PATH = "../../Unreal/CarlaUE4/LidarModelFiles/vehicles.json"
 
 """ SAVE PATHS """
 LIDAR_PATH = os.path.join(OUTPUT_FOLDER, 'velodyne/{0:06}.bin')
@@ -87,7 +87,7 @@ def main(arg):
     client = carla.Client('localhost', 2000)
     client.set_timeout(5.0)
     world = client.get_world()
-
+    
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
     
     #Crear directorios para guardar los datos, nubes de puntos, imagenes y labels
@@ -116,7 +116,7 @@ def main(arg):
         #Crea el LIDAR con las especificaciones de HDL-64E
         ang_inc = True
         material = True
-        reflectance_limit = True
+        reflectance_limit = False
         lidar_bp = generate_lidar_bp(blueprint_library,delta,ang_inc,material,reflectance_limit)
 
         #Crea la camara RGB
@@ -230,7 +230,7 @@ def main(arg):
             #print(world.get_snapshot().frame)
             #print("--------------------------------")
             #cuando se tengan ambos datos (imagen y nube de puntos) de un mismo frame, se almacenan ambos
-            if ticks > 1 and (image.frame == pointcloud.frame) and frames_between_captures==40:
+            if ticks > 1 and (image.frame == pointcloud.frame):
 
                 frames_between_captures = 0
 

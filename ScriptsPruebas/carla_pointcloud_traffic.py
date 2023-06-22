@@ -26,7 +26,7 @@ except IndexError:
 
 import carla
 
-from camera_utils import build_projection_matrix, w3D_to_cam3D, w3D_to_cam2D, bbox_in_image
+from transformation_utils import build_projection_matrix, w3D_to_cam3D, w3D_to_cam2D, bbox_in_image
 from kitti_label import KittiLabel
 
 """ OUTPUT FOLDERS """

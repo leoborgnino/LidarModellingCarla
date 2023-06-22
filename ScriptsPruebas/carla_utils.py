@@ -8,11 +8,11 @@ def generate_lidar_bp(blueprint_library,delta,ang_inc,material,reflectance_limit
     lidar_bp.set_attribute('upper_fov', str(2.0))
     lidar_bp.set_attribute('lower_fov', str(-24.8))
     lidar_bp.set_attribute('channels', str(64))
-    lidar_bp.set_attribute('range', str(130))
+    lidar_bp.set_attribute('range', str(130.0))
     lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
     lidar_bp.set_attribute('points_per_second', str(1333330))
-    lidar_bp.set_attribute('noise_stddev', str(0.03))
-    lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
+    lidar_bp.set_attribute('noise_stddev', str(0.015))
+    lidar_bp.set_attribute('dropoff_general_rate',str(0.05))
     lidar_bp.set_attribute('dropoff_intensity_limit',str(0.0))
     lidar_bp.set_attribute('dropoff_zero_intensity',str(0.0))
     #lidar_bp.set_attribute('sensor_tick', str(0.1)) #si es el doble q delta, va a dar un dato cada 2 ticks
@@ -20,14 +20,37 @@ def generate_lidar_bp(blueprint_library,delta,ang_inc,material,reflectance_limit
         lidar_bp.set_attribute('model_angle', 'true')
     if(material):
         lidar_bp.set_attribute('model_material', 'true')
-    lidar_bp.set_attribute('noise_stddev_intensity',str(0.03))
+    lidar_bp.set_attribute('noise_stddev_intensity',str(0.05))
     lidar_bp.set_attribute('atmosphere_attenuation_rate',str(0.004))
     if(reflectance_limit):
         lidar_bp.set_attribute('model_reflectance_limits_function', 'true')
         lidar_bp.set_attribute('reflectance_limits_function_coeff_a', str(0.0005))
         lidar_bp.set_attribute('reflectance_limits_function_coeff_b', str(0.000054))
+    return lidar_bp
 
-
+def generate_lidar_bp_by_gui(blueprint_library,delta,lidar_all_configs):
+    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+    lidar_bp.set_attribute('upper_fov', lidar_all_configs[0])
+    lidar_bp.set_attribute('lower_fov', lidar_all_configs[1])
+    lidar_bp.set_attribute('channels', lidar_all_configs[2])
+    lidar_bp.set_attribute('range', lidar_all_configs[3])
+    lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
+    lidar_bp.set_attribute('points_per_second', str(int(lidar_all_configs[4])/delta))
+    lidar_bp.set_attribute('noise_stddev', lidar_all_configs[5])
+    lidar_bp.set_attribute('noise_stddev_intensity',lidar_all_configs[6])
+    lidar_bp.set_attribute('atmosphere_attenuation_rate',lidar_all_configs[7])
+    lidar_bp.set_attribute('dropoff_general_rate', lidar_all_configs[8])
+    lidar_bp.set_attribute('dropoff_intensity_limit', lidar_all_configs[9])
+    lidar_bp.set_attribute('dropoff_zero_intensity',lidar_all_configs[10])
+    #lidar_bp.set_attribute('sensor_tick', str(0.1)) #si es el doble q delta, va a dar un dato cada 2 ticks
+    if(lidar_all_configs[11]):
+        lidar_bp.set_attribute('model_angle', 'true')
+    if(lidar_all_configs[12]):
+        lidar_bp.set_attribute('model_material', 'true')
+    if(lidar_all_configs[13]):
+        lidar_bp.set_attribute('model_reflectance_limits_function', 'true')
+        lidar_bp.set_attribute('reflectance_limits_function_coeff_a', lidar_all_configs[14])
+        lidar_bp.set_attribute('reflectance_limits_function_coeff_b', lidar_all_configs[15])
     return lidar_bp
 
 
@@ -130,11 +153,13 @@ def spawn_pedestrians(seed,world,client,number_of_walkers,blueprintsWalkers):
     walker_speed2 = []
     for i in range(len(results)):
         if results[i].error:
+            pass
             logging.error(results[i].error)
         else:
             walkers_list.append({"id": results[i].actor_id})
             walker_speed2.append(walker_speed[i])
     walker_speed = walker_speed2
+    #print(len(walkers_list))
     # 3. we spawn the walker controller
     batch = []
     walker_controller_bp = world.get_blueprint_library().find('controller.ai.walker')
