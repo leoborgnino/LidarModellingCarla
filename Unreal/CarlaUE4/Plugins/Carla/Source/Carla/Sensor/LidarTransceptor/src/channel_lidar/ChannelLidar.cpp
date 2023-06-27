@@ -31,11 +31,11 @@ ChannelLidar::~ChannelLidar(){};
 int  ChannelLidar::init(parametersLiDAR *params){
     /*!Se utiliza para realizar la carga de parametros y la configuracion 
       inicial de las variables*/
-    LAMBDA0 = parametersLiDAR->LAMBDA0;
-    DEBUG_CH = parametersLiDAR->DEBUG_GLOBAL;
-    FS = parametersLiDAR->CH_FS;
-    NOS = parametersLiDAR->CH_NOS;
-    ARX = parametersLiDAR->ARX;
+    LAMBDA0 = params->LAMBDA0;
+    DEBUG_CH = params->DEBUG_GLOBAL;
+    FS = params->CH_FS;
+    NOS = params->CH_NOS;
+    ARX = params->ARX;
     
     return 0;
 };

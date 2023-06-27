@@ -31,11 +31,11 @@ TxLidarPulsed::~TxLidarPulsed(){};
 int  TxLidarPulsed::init(parametersLiDAR *params){
     /*!Se utiliza para realizar la carga de parametros y la configuracion 
       inicial de las variables*/    
-    MAX_RANGE = parametersLiDAR->MAX_RANGE;
-    TAU_SIGNAL = parametersLiDAR->TAU_SIGNAL;
-    FS = parametersLiDAR->TX_FS;
-    NOS = parametersLiDAR->TX_NOS;
-    POWER_TX = parametersLiDAR->PTX;
+    MAX_RANGE = params->MAX_RANGE;
+    TAU_SIGNAL = params->TAU_SIGNAL;
+    FS = params->TX_FS;
+    NOS = params->TX_NOS;
+    POWER_TX = params->PTX;
     return 0;
 };
 

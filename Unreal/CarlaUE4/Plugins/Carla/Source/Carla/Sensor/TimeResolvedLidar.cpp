@@ -8,6 +8,7 @@
 #include <cmath>
 #include "Carla.h"
 #include "Carla/Sensor/TimeResolvedLidar.h"
+#include "Carla/Sensor/LidarTransceptor/src/common/constants.h"
 #include "Carla/Actor/ActorBlueprintFunctionLibrary.h"
 #include "carla/geom/Math.h"
 
@@ -31,12 +32,41 @@ ATimeResolvedLidar::ATimeResolvedLidar(const FObjectInitializer& ObjectInitializ
 
   RandomEngine = CreateDefaultSubobject<URandomEngine>(TEXT("RandomEngine"));
   SetSeed(Description.RandomSeed);
+
+  parametersLiDAR params = {
+			      // Global
+			    .LAMBDA0 = 950e-9,
+			    .MAX_RANGE = 300,
+			    .DEBUG_GLOBAL = false,
+			    .LOG_TX = false,
+			    .LOG_RX = false,
+			    .LOG_CHANNEL = false,
+
+			    // TX
+			    .PTX = 50e-3,       // Potencia del Transmisor [Watts]
+			    .TAU_SIGNAL = 5e-9, // Duracion del pulso [s] si lo aumento, gano SNR, pierdo resolucion
+			    .TX_FS = 2e9,       // Frecuencia de Muestreo [Hz]
+			    .TX_NOS = 5,        // Sobremuestreo [Veces]
+
+			    // Channel
+  
+			    .ARX = 1.592e-3,  // Ganancia de la optica del receptor (pi*(2.54e-2/2)^2) diametro 1 pulgada del receptor
+			    .CH_FS = 2e9,     // Frecuencia de Muestreo [Hz]
+			    .CH_NOS = 5,      // Sobremuestreo [Veces]
+
+			    // RX
+			    .PRX = 1,     // Amplificador del detector
+			    .RPD = 0.8,   // Sensibilidad del fotodetector [A/W] 
+			    .RX_FS = 2e9, // Frecuencia de Muestreo [Hz]
+			    .RX_NOS = 5   // Sobremuestreo [Veces]
+  };
+  
   TxLidarPulsed * tx_lidar = new TxLidarPulsed();
-  //tx_lidar->init             (     params      );
+  tx_lidar->init             (     &params     );
   ChannelLidar * channel_lidar = new ChannelLidar();
-  //channel_lidar->init        (     params      );
+  channel_lidar->init        (     &params     );
   RxLidarPulsed * rx_lidar = new RxLidarPulsed();
-  //rx_lidar->init             (     params      );
+  rx_lidar->init             (     &params     );
   
 }
 

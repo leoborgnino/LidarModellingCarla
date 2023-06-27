@@ -45,7 +45,7 @@ public:
 
   /**El metodo init, utiliza la clase loadSettings para determinar los valores de las
      variables que utiliza. */
-  int init(loadSettings *params);
+  int init(parametersLiDAR *params);
   vector<double> run(vector<double> input_rx_from_tx, vector<double> input_rx_from_channel);    
 
   // Interfaces

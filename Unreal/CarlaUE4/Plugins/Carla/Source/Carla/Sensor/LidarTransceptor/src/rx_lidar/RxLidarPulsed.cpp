@@ -31,13 +31,13 @@ RxLidarPulsed::~RxLidarPulsed(){};
 int  RxLidarPulsed::init(parametersLiDAR *params){
   /*!Se utiliza para realizar la carga de parametros y la configuracion 
     inicial de las variables*/    
-  MAX_RANGE = parametersLiDAR->MAX_RANGE;
+  MAX_RANGE = params->MAX_RANGE;
 
-  DEBUG_RX = parametersLiDAR->DEBUG_GLOBAL;
-  FS = parametersLiDAR->RX_FS;
-  NOS = parametersLiDAR->RX_NOS;
-  POWER_RX = parametersLiDAR->PRX;    
-  RPD = parametersLiDAR->RPD;    
+  DEBUG_RX = params->DEBUG_GLOBAL;
+  FS = params->RX_FS;
+  NOS = params->RX_NOS;
+  POWER_RX = params->PRX;    
+  RPD = params->RPD;    
 
   noise_power = Q_ELECT/RPD*FS;
   return 0;
