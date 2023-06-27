@@ -100,6 +100,7 @@ fi
 if ${REMOVE_INTERMEDIATE} ; then
 
   log "Cleaning intermediate files and folders."
+  log ${PWD}
 
   UE4_INTERMEDIATE_FOLDERS="Binaries Build Intermediate DerivedDataCache"
 
