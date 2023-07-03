@@ -68,7 +68,7 @@ vector<double> ChannelLidar::run(vector<double> channel_input, double range, dou
 
   // Desplazamiento según el retardo
   // Warning: Posible bug porque es un shift circular
-  rotate(channel_output.begin(), channel_output.begin()+channel_output.size()-delay_samples, channel_output.end());
+  rotate(channel_output.begin(), channel_output.begin()+channel_output.size()-delay_samples-1, channel_output.end());
   
   // Warning: Faltaría el desplazamiento de la fase por ahora solo real
   

@@ -23,7 +23,7 @@
 
 FActorDefinition ATimeResolvedLidar::GetSensorDefinition()
 {
-  return UActorBlueprintFunctionLibrary::MakeLidarDefinition(TEXT("ray_cast"));
+  return UActorBlueprintFunctionLibrary::MakeLidarDefinition(TEXT("ray_cast_time_resolved"));
 }
 
 
@@ -40,6 +40,35 @@ ATimeResolvedLidar::ATimeResolvedLidar(const FObjectInitializer& ObjectInitializ
   //Cargar la lista de actores desde un archivo json 
   LoadActorsList();
 
+  // Warning Remove and use APIs
+
+  params.LAMBDA0 = 950e-9;
+  params.MAX_RANGE =  50;
+  params.DEBUG_GLOBAL = false;
+  params.LOG_TX  = false ;
+  params.LOG_RX  = false ;
+  params.LOG_CHANNEL  = false ;
+  params.PTX  = 50e-3 ;
+  params.TAU_SIGNAL = 5e-9 ;
+  params.TX_FS = 2e9 ;
+  params.TX_NOS = 2 ;
+  params.ARX = 1.592e-3 ;
+  params.CH_FS = 2e9 ;
+  params.CH_NOS = 2 ;
+  params.PRX = 1 ;
+  params.RPD = 0.8 ;
+  params.RX_FS = 2e9 ;
+  params.RX_NOS = 2 ; 
+
+  tx_lidar = new TxLidarPulsed();
+  tx_lidar->init(&params);
+  
+  channel_lidar = new ChannelLidar();
+  channel_lidar->init(&params);
+
+  rx_lidar = new RxLidarPulsed();
+  rx_lidar->init(&params);
+  
 }
 
 void ATimeResolvedLidar::Set(const FActorDescription &ActorDescription)
@@ -106,7 +135,9 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
   //Posicion del sensor
   FVector SensorLocation = SensorTransf.GetLocation(); 
   //Vector incidente, normalizado, entre sensor y punto de hit con el target
-  FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal(); 
+  FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal();
+  FVector VectorIncidente_t = VectorIncidente * Distance;
+  
   //Vector normal a la superficie de hit, normalizado
   FVector VectorNormal = HitInfo.ImpactNormal;
   //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
@@ -166,6 +197,46 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
   //const float IntRec = ReflectivityValue;
 
   Detection.intensity = IntRec;
+
+  // LiDAR Transceptor
+  vector<double> output_tx;
+  output_tx = tx_lidar->run();
+  
+  
+  vector<double> output_channel;
+  output_channel = channel_lidar->run(output_tx,Distance,ReflectivityValue,CosAngle); // Ojo calcula la intensidad diferente
+
+  vector<double> output_rx;  
+  output_rx = rx_lidar->run(output_tx,output_channel);
+
+  // Calculo de la distancia
+  auto it = max_element(output_rx.begin(),output_rx.end());
+  int max_idx = distance(output_rx.begin(),it);
+  double max_value = *it;
+  double distance = ((max_idx+1-output_tx.size())/(params.RX_FS*params.RX_NOS))*LIGHT_SPEED/2;      // Calculo de la distancia
+  FVector vector_proc = (VectorIncidente*distance);
+  Detection.point.x = vector_proc.X;
+  Detection.point.y = vector_proc.Y;
+  Detection.point.z = vector_proc.Z;
+  
+  // Only Debug
+  if(true)
+    {
+      cout << output_tx.size() << " " << output_channel.size() << " " << endl;
+      UE_LOG(LogTemp, Log, TEXT("Distancia: %f"), Distance);
+      cout << "Distancia Receptor: " << distance << endl;
+      cout << "Punto: " << Detection.point.x << " " << Detection.point.y << " " << Detection.point.z << endl;
+      UE_LOG(LogTemp, Log, TEXT("Vector3: %s"), *(VectorIncidente*distance).ToString());
+      UE_LOG(LogTemp, Log, TEXT("Vector: %s"), *VectorIncidente.ToString());
+      UE_LOG(LogTemp, Log, TEXT("Vector2: %s"), *VectorIncidente_t.ToString());
+      
+
+      //cout << "*******************Salida RX***************" << endl;
+      //for (auto i: output_tx)
+      //	cout << i << " ";
+      //cout << endl;
+    }
+
 
   return Detection;
 }

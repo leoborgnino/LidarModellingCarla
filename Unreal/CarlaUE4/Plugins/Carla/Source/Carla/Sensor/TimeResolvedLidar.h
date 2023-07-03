@@ -6,12 +6,14 @@
 
 #pragma once
 
+#include <vector>
 
 #include "Carla/Actor/ActorDefinition.h"
 #include "Carla/Sensor/LidarDescription.h"
 #include "Carla/Sensor/Sensor.h"
 #include "Carla/Sensor/RayCastSemanticLidar.h"
 // Tx
+#include "Carla/Sensor/LidarTransceptor/src/common/constants.h"
 #include "Carla/Sensor/LidarTransceptor/src/tx_lidar/TxLidarPulsed.h"
 // Channel
 #include "Carla/Sensor/LidarTransceptor/src/channel_lidar/ChannelLidar.h"
@@ -25,6 +27,7 @@
 #include <compiler/enable-ue4-macros.h>
 
 #include "TimeResolvedLidar.generated.h"
+
 
 /// A ray-cast based Lidar sensor.
 UCLASS()
@@ -84,9 +87,11 @@ private:
 
   void LoadActorsList();
 
+  // Transceptor LiDAR
+  parametersLiDAR params;
 
   TxLidarPulsed * tx_lidar;
-  ChannelLidar * channel_lidar;
+  ChannelLidar *  channel_lidar;
   RxLidarPulsed * rx_lidar;
 
 };
