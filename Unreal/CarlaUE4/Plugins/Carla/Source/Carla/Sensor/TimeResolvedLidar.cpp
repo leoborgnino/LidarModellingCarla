@@ -39,35 +39,6 @@ ATimeResolvedLidar::ATimeResolvedLidar(const FObjectInitializer& ObjectInitializ
 
   //Cargar la lista de actores desde un archivo json 
   LoadActorsList();
-
-  // Warning Remove and use APIs
-
-  params.LAMBDA0 = 950e-9;
-  params.MAX_RANGE =  50;
-  params.DEBUG_GLOBAL = false;
-  params.LOG_TX  = false ;
-  params.LOG_RX  = false ;
-  params.LOG_CHANNEL  = false ;
-  params.PTX  = 50e-3 ;
-  params.TAU_SIGNAL = 5e-9 ;
-  params.TX_FS = 2e9 ;
-  params.TX_NOS = 2 ;
-  params.ARX = 1.592e-3 ;
-  params.CH_FS = 2e9 ;
-  params.CH_NOS = 2 ;
-  params.PRX = 1 ;
-  params.RPD = 0.8 ;
-  params.RX_FS = 2e9 ;
-  params.RX_NOS = 2 ; 
-
-  tx_lidar = new TxLidarPulsed();
-  tx_lidar->init(&params);
-  
-  channel_lidar = new ChannelLidar();
-  channel_lidar->init(&params);
-
-  rx_lidar = new RxLidarPulsed();
-  rx_lidar->init(&params);
   
 }
 
@@ -86,10 +57,40 @@ void ATimeResolvedLidar::Set(const FLidarDescription &LidarDescription)
   CreateLasers();
   PointsPerChannel.resize(Description.Channels);
 
+  // Warning Remove and use API
+  params.LAMBDA0 = Description.LAMBDA0;
+  params.MAX_RANGE = Description.MAX_RANGE;
+  params.DEBUG_GLOBAL = Description.DEBUG_GLOBAL;
+  params.LOG_TX  = Description.LOG_TX;
+  params.LOG_RX  = Description.LOG_RX;
+  params.LOG_CHANNEL  = Description.LOG_CHANNEL;
+  params.PTX  = Description.PTX;
+  params.TAU_SIGNAL = Description.TAU_SIGNAL ;
+  params.TX_FS = Description.TX_FS;
+  params.TX_NOS = Description.TX_NOS;
+  params.ARX = Description.ARX;
+  params.CH_FS = Description.CH_FS;
+  params.CH_NOS = Description.CH_NOS;
+  params.PRX = Description.PRX;
+  params.RPD = Description.RPD;
+  params.RX_FS = Description.RX_FS;
+  params.RX_NOS = Description.RX_NOS;
+  
   // Compute drop off model parameters
   DropOffBeta = 1.0f - Description.DropOffAtZeroIntensity;
   DropOffAlpha = Description.DropOffAtZeroIntensity / Description.DropOffIntensityLimit;
   DropOffGenActive = Description.DropOffGenRate > std::numeric_limits<float>::epsilon();
+
+  // LiDAR Transceptor
+  
+  tx_lidar = new TxLidarPulsed();
+  tx_lidar->init(&params);
+  
+  channel_lidar = new ChannelLidar();
+  channel_lidar->init(&params);
+
+  rx_lidar = new RxLidarPulsed();
+  rx_lidar->init(&params);
 }
 
 void ATimeResolvedLidar::PostPhysTick(UWorld *World, ELevelTick TickType, float DeltaTime)
@@ -215,19 +216,18 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
   double max_value = *it;
   double distance = ((max_idx+1-output_tx.size())/(params.RX_FS*params.RX_NOS))*LIGHT_SPEED/2;      // Calculo de la distancia
   FVector vector_proc = (VectorIncidente*distance);
-  Detection.point.x = vector_proc.X;
-  Detection.point.y = vector_proc.Y;
-  Detection.point.z = vector_proc.Z;
-  
+
   // Only Debug
-  if(true)
+  if(params.DEBUG_GLOBAL)
     {
+      cout << "Punto: " << Detection.point.x << " " << Detection.point.y << " " << Detection.point.z << endl;
+      cout << "Punto: " << vector_proc.X << " " << vector_proc.Y << " " << vector_proc.Z << endl;
       cout << output_tx.size() << " " << output_channel.size() << " " << endl;
       UE_LOG(LogTemp, Log, TEXT("Distancia: %f"), Distance);
       cout << "Distancia Receptor: " << distance << endl;
-      cout << "Punto: " << Detection.point.x << " " << Detection.point.y << " " << Detection.point.z << endl;
       UE_LOG(LogTemp, Log, TEXT("Vector3: %s"), *(VectorIncidente*distance).ToString());
       UE_LOG(LogTemp, Log, TEXT("Vector: %s"), *VectorIncidente.ToString());
+
       UE_LOG(LogTemp, Log, TEXT("Vector2: %s"), *VectorIncidente_t.ToString());
       
 
@@ -236,7 +236,9 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
       //	cout << i << " ";
       //cout << endl;
     }
-
+  Detection.point.x = -vector_proc.X;
+  Detection.point.y = -vector_proc.Y;
+  Detection.point.z = -vector_proc.Z;    
 
   return Detection;
 }
@@ -253,11 +255,17 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
 
   bool ATimeResolvedLidar::PostprocessDetection(FDetection& Detection) const
   {
-    if (Description.NoiseStdDev > std::numeric_limits<float>::epsilon()) {
-      const auto ForwardVector = Detection.point.MakeUnitVector();
-      const auto Noise = ForwardVector * RandomEngine->GetNormalDistribution(0.0f, Description.NoiseStdDev);
-      Detection.point += Noise;
-    }
+    // Removed Extra Noise
+    //if (Description.NoiseStdDev > std::numeric_limits<float>::epsilon()) {
+    //  if ( abs(Detection.point.x) < 0.0001 &&
+    //	   abs(Detection.point.y) < 0.0001 &&
+    //	   abs(Detection.point.z) < 0.0001 )
+    //	Detection.point.z = 1.0;
+    //  
+    //  const auto ForwardVector = Detection.point.MakeUnitVector();
+    //  const auto Noise = ForwardVector * RandomEngine->GetNormalDistribution(0.0f, Description.NoiseStdDev);
+    //  Detection.point += Noise;
+    //}
 
     const float Intensity = Detection.intensity;
     if(Intensity > Description.DropOffIntensityLimit)

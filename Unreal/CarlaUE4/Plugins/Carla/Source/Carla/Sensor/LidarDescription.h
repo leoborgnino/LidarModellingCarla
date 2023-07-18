@@ -69,4 +69,61 @@ struct CARLA_API FLidarDescription
 
   UPROPERTY(EditAnywhere)
   float NoiseStdDev = 0.0f;
+
+  UPROPERTY(EditAnywhere)
+  float LAMBDA0 = 950e-9f;
+  
+  UPROPERTY(EditAnywhere)
+  float MAX_RANGE = 50.0f;
+  
+  UPROPERTY(EditAnywhere)
+  bool DEBUG_GLOBAL = false;
+  
+  UPROPERTY(EditAnywhere)
+  bool LOG_TX = false;
+  
+  UPROPERTY(EditAnywhere)
+  bool LOG_RX = false;
+  
+  UPROPERTY(EditAnywhere)
+  bool LOG_CHANNEL = false;
+  
+  UPROPERTY(EditAnywhere)
+  float PTX = 50e-3f;
+  
+  UPROPERTY(EditAnywhere)
+  float TAU_SIGNAL = 5e-9f;
+  
+  UPROPERTY(EditAnywhere)
+  float TX_FS = 2e9f;
+  
+  UPROPERTY(EditAnywhere)
+  int TX_NOS = 2 ;
+  
+  UPROPERTY(EditAnywhere)
+  float ARX = 1.592e-3f;
+  
+  UPROPERTY(EditAnywhere)
+  float CH_FS = 2e9f;
+  
+  UPROPERTY(EditAnywhere)
+  int CH_NOS = 2 ;
+  
+  UPROPERTY(EditAnywhere)
+  float PRX = 1.0f;
+  
+  UPROPERTY(EditAnywhere)
+  float RPD = 0.8f;
+  
+  UPROPERTY(EditAnywhere)
+  float RX_FS = 2e9f;
+  
+  UPROPERTY(EditAnywhere)
+  int RX_NOS = 2 ;
+  
+  UPROPERTY(EditAnywhere)
+  bool TRANS_ON = true;
+  
+  UPROPERTY(EditAnywhere)
+  bool INTENSITY_CALC = true;
 };

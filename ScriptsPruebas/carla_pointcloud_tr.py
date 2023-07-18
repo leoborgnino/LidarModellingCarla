@@ -10,11 +10,9 @@ from matplotlib import cm
 import open3d as o3d
 
 try:
-    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
-        sys.version_info.major,
-        sys.version_info.minor,
-        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+    sys.path.append('../PythonAPI/carla/dist/carla-0.9.13-py3.8-linux-x86_64.egg')
 except IndexError:
+    
     pass
 
 import carla
@@ -63,12 +61,14 @@ def main(arg):
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast_time_resolved')
         lidar_bp.set_attribute('upper_fov', str(2.0))
         lidar_bp.set_attribute('lower_fov', str(-24.8))
-        lidar_bp.set_attribute('channels', str(32))
+        lidar_bp.set_attribute('channels', str(16))
         lidar_bp.set_attribute('range', str(40))
         lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
         lidar_bp.set_attribute('points_per_second', str(100000))
         lidar_bp.set_attribute('noise_stddev', str(0.01))
         lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
+        lidar_bp.set_attribute('debug_global',"false")
+        lidar_bp.set_attribute('power_tx',str(50e-3))
 
         #Spawnea el LIDAR en la simulacion en la ubicacion especificado por argumentos
         lidar_transform = carla.Transform(carla.Location(arg.x, arg.y, arg.z), 
@@ -79,7 +79,7 @@ def main(arg):
         lidar.listen(lambda data: lidar_callback(data))
         
         world.tick()
-        time.sleep(1.0)
+        time.sleep(10.0)
 
     finally:
         world.apply_settings(original_settings)
