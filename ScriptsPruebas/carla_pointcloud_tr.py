@@ -67,7 +67,9 @@ def main(arg):
         lidar_bp.set_attribute('points_per_second', str(100000))
         lidar_bp.set_attribute('noise_stddev', str(0.01))
         lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
-        lidar_bp.set_attribute('debug_global',"false")
+        lidar_bp.set_attribute('debug_global',"true")
+        lidar_bp.set_attribute('model_transceptor',"false")
+        lidar_bp.set_attribute('model_intensity',"false")
         lidar_bp.set_attribute('power_tx',str(50e-3))
 
         #Spawnea el LIDAR en la simulacion en la ubicacion especificado por argumentos
@@ -79,7 +81,7 @@ def main(arg):
         lidar.listen(lambda data: lidar_callback(data))
         
         world.tick()
-        time.sleep(10.0)
+        time.sleep(1.0)
 
     finally:
         world.apply_settings(original_settings)

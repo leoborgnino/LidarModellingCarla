@@ -6,6 +6,7 @@
 
 #include <PxScene.h>
 #include <cmath>
+#include <chrono>
 #include "Carla.h"
 #include "Carla/Sensor/TimeResolvedLidar.h"
 #include "Carla/Actor/ActorBlueprintFunctionLibrary.h"
@@ -120,6 +121,8 @@ float ATimeResolvedLidar::ComputeIntensity(const FSemanticDetection& RawDetectio
 
 ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitResult& HitInfo, const FTransform& SensorTransf) const
 {
+  auto start = std::chrono::high_resolution_clock::now();
+
   FDetection Detection;
   const FVector HitPoint = HitInfo.ImpactPoint;
   Detection.point = SensorTransf.Inverse().TransformPosition(HitPoint);
@@ -129,116 +132,133 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
   //Atenuacion atmosferica en base a la distancia, por defecto de CARLA
   const float AttenAtm = Description.AtmospAttenRate;
   const float AbsAtm = exp(-AttenAtm * Distance);
-
+  float CosAngle = 1.0;
+  float ReflectivityValue = 1.0;
+  
   //MEJORAS DEL MODELO
   //Efecto del angulo del incidencia
-  
-  //Posicion del sensor
-  FVector SensorLocation = SensorTransf.GetLocation(); 
-  //Vector incidente, normalizado, entre sensor y punto de hit con el target
-  FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal();
-  FVector VectorIncidente_t = VectorIncidente * Distance;
-  
-  //Vector normal a la superficie de hit, normalizado
-  FVector VectorNormal = HitInfo.ImpactNormal;
-  //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
-  float CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
-  //CosAngle = sqrtf(CosAngle);
-  
-  //Efecto de la reflectividad del material
-  AActor* ActorHit = HitInfo.GetActor();
-  FString ActorHitName = ActorHit->GetName();
 
-  const double* ReflectivityPointer;
-  float ReflectivityValue;
-  bool MaterialFound=false;
-  bool ActorFound = false;
-
-  //Determinar si el actor del hit, esta dentro de los actores a los cuales computar los materiales
-  for (int32 i=0; i!=ActorsList.Num();i++){
-    if(ActorHitName.Contains(ActorsList[i])){
-      ActorFound=true;
-      break;
-    }
-  }
-
-  //Segun si el nombre del actor, corresponde a un actor al cual computar su material
-  if(ActorFound){
-    
-    //Se obtiene el nombre del material del hit
-    FString MaterialNameHit = GetHitMaterialName(HitInfo);
-
-    //Se recorre la lista de materiales con su respectiva reflectividad
-    for (auto& Elem : ReflectivityMap)
+  if (Description.INTENSITY_CALC)
     {
-      FString MaterialKey = Elem.Key;
-      //comprueba de si el nombre del material esta incluido en el material del hit
-      if(MaterialNameHit.Contains(MaterialKey)){
-        //cuando se encuentra, se obtiene el valor de reflectividad asociado a ese material
-        ReflectivityValue = (float)Elem.Value;
-        MaterialFound=true;
-        //WriteFile(MaterialNameHit);
-        break;
-      }
-    }
-  }
-
-  if(!MaterialFound){
-    //Se le asigna una reflectivdad por defeto a los materiales no criticos
-    ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
-    ReflectivityValue = (float)*ReflectivityPointer;
-  }
-
-  //La intensidad del punto tiene en cuenta:
-  //Atenuacion atmosferica -> la intensidad sera menor a mayor distancia
-  //Cos Ang Incidencia -> la intensidad mientras mas perpendicular a la superficie sea el rayo incidente
-  //Reflectividad del material
-
-  const float IntRec = CosAngle * AbsAtm * ReflectivityValue;
-  //const float IntRec = ReflectivityValue;
-
-  Detection.intensity = IntRec;
-
-  // LiDAR Transceptor
-  vector<double> output_tx;
-  output_tx = tx_lidar->run();
-  
-  
-  vector<double> output_channel;
-  output_channel = channel_lidar->run(output_tx,Distance,ReflectivityValue,CosAngle); // Ojo calcula la intensidad diferente
-
-  vector<double> output_rx;  
-  output_rx = rx_lidar->run(output_tx,output_channel);
-
-  // Calculo de la distancia
-  auto it = max_element(output_rx.begin(),output_rx.end());
-  int max_idx = distance(output_rx.begin(),it);
-  double max_value = *it;
-  double distance = ((max_idx+1-output_tx.size())/(params.RX_FS*params.RX_NOS))*LIGHT_SPEED/2;      // Calculo de la distancia
-  FVector vector_proc = (VectorIncidente*distance);
-
-  // Only Debug
-  if(params.DEBUG_GLOBAL)
-    {
-      cout << "Punto: " << Detection.point.x << " " << Detection.point.y << " " << Detection.point.z << endl;
-      cout << "Punto: " << vector_proc.X << " " << vector_proc.Y << " " << vector_proc.Z << endl;
-      cout << output_tx.size() << " " << output_channel.size() << " " << endl;
-      UE_LOG(LogTemp, Log, TEXT("Distancia: %f"), Distance);
-      cout << "Distancia Receptor: " << distance << endl;
-      UE_LOG(LogTemp, Log, TEXT("Vector3: %s"), *(VectorIncidente*distance).ToString());
-      UE_LOG(LogTemp, Log, TEXT("Vector: %s"), *VectorIncidente.ToString());
-
-      UE_LOG(LogTemp, Log, TEXT("Vector2: %s"), *VectorIncidente_t.ToString());
       
+      //Posicion del sensor
+      FVector SensorLocation = SensorTransf.GetLocation(); 
+      //Vector incidente, normalizado, entre sensor y punto de hit con el target
+      FVector VectorIncidente = - (HitPoint - SensorLocation).GetSafeNormal();
+      FVector VectorIncidente_t = VectorIncidente * Distance;
+  
+      //Vector normal a la superficie de hit, normalizado
+      FVector VectorNormal = HitInfo.ImpactNormal;
+      //Producto punto entre ambos vector, se obtiene el coseno del ang de incidencia
+      CosAngle = FVector::DotProduct(VectorIncidente, VectorNormal);
+      //CosAngle = sqrtf(CosAngle);
+  
+      //Efecto de la reflectividad del material
+      AActor* ActorHit = HitInfo.GetActor();
+      FString ActorHitName = ActorHit->GetName();
 
-      //cout << "*******************Salida RX***************" << endl;
-      //for (auto i: output_tx)
-      //	cout << i << " ";
-      //cout << endl;
+      const double* ReflectivityPointer;
+      bool MaterialFound=false;
+      bool ActorFound = false;
+
+      //Determinar si el actor del hit, esta dentro de los actores a los cuales computar los materiales
+      for (int32 i=0; i!=ActorsList.Num();i++){
+	if(ActorHitName.Contains(ActorsList[i])){
+	  ActorFound=true;
+	  break;
+	}
+      }
+
+      //Segun si el nombre del actor, corresponde a un actor al cual computar su material
+      if(ActorFound){
+    
+	//Se obtiene el nombre del material del hit
+	FString MaterialNameHit = GetHitMaterialName(HitInfo);
+
+	//Se recorre la lista de materiales con su respectiva reflectividad
+	for (auto& Elem : ReflectivityMap)
+	  {
+	    FString MaterialKey = Elem.Key;
+	    //comprueba de si el nombre del material esta incluido en el material del hit
+	    if(MaterialNameHit.Contains(MaterialKey)){
+	      //cuando se encuentra, se obtiene el valor de reflectividad asociado a ese material
+	      ReflectivityValue = (float)Elem.Value;
+	      MaterialFound=true;
+	      //WriteFile(MaterialNameHit);
+	      break;
+	    }
+	  }
+      }
+
+      if(!MaterialFound){
+	//Se le asigna una reflectivdad por defeto a los materiales no criticos
+	ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
+	ReflectivityValue = (float)*ReflectivityPointer;
+      }
+
+      //La intensidad del punto tiene en cuenta:
+      //Atenuacion atmosferica -> la intensidad sera menor a mayor distancia
+      //Cos Ang Incidencia -> la intensidad mientras mas perpendicular a la superficie sea el rayo incidente
+
+      if (Description.TRANS_ON)
+	{
+	  // LiDAR Transceptor
+	  vector<double> output_tx;
+	  output_tx = tx_lidar->run();
+      
+      
+	  vector<double> output_channel;
+	  output_channel = channel_lidar->run(output_tx,Distance,ReflectivityValue,CosAngle); // Ojo calcula la intensidad diferente
+      
+	  vector<double> output_rx;  
+	  output_rx = rx_lidar->run(output_tx,output_channel);
+      
+	  // Calculo de la distancia
+	  auto it = max_element(output_rx.begin(),output_rx.end());
+	  int max_idx = distance(output_rx.begin(),it);
+	  double max_value = *it;
+	  double distance = ((max_idx+1-output_tx.size())/(params.RX_FS*params.RX_NOS))*LIGHT_SPEED/2;      // Calculo de la distancia
+	  FVector vector_proc = (VectorIncidente*distance);
+
+	  // Only Debug
+	  if(params.DEBUG_GLOBAL)
+	    {
+	      if (params.LOG_RX)
+		{
+		  cout << "Punto: " << Detection.point.x << " " << Detection.point.y << " " << Detection.point.z << endl;
+		  cout << "Punto: " << vector_proc.X << " " << vector_proc.Y << " " << vector_proc.Z << endl;
+		  cout << output_tx.size() << " " << output_channel.size() << " " << endl;
+		  UE_LOG(LogTemp, Log, TEXT("Distancia: %f"), Distance);
+		  cout << "Distancia Receptor: " << distance << endl;
+		  UE_LOG(LogTemp, Log, TEXT("Vector3: %s"), *(VectorIncidente*distance).ToString());
+		  UE_LOG(LogTemp, Log, TEXT("Vector: %s"), *VectorIncidente.ToString());
+		  
+		  UE_LOG(LogTemp, Log, TEXT("Vector2: %s"), *VectorIncidente_t.ToString());
+		  
+		  //cout << "*******************Salida RX***************" << endl;
+		  //for (auto i: output_tx)
+		  //	cout << i << " ";
+		  //cout << endl;
+		}
+	    }
+	  Detection.point.x = -vector_proc.X;
+	  Detection.point.y = -vector_proc.Y;
+	  Detection.point.z = -vector_proc.Z;
+	}
+
     }
-  Detection.point.x = -vector_proc.X;
-  Detection.point.y = -vector_proc.Y;
-  Detection.point.z = -vector_proc.Z;    
+
+  //Reflectividad del material
+  Detection.intensity = CosAngle * AbsAtm * ReflectivityValue;
+
+  if(Description.DEBUG_GLOBAL)
+    {
+      using nano = std::chrono::nanoseconds;
+      auto finish = std::chrono::high_resolution_clock::now();
+      std::cout << "RAYCAST ELAPSED: "
+		<< std::chrono::duration_cast<nano>(finish - start).count()
+		<< " nanoseconds\n";
+    }
 
   return Detection;
 }
