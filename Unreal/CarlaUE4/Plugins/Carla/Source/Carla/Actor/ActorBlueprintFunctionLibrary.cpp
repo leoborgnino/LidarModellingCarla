@@ -963,7 +963,7 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   RPD.RecommendedValues = { TEXT("0.8") };
   //params.RX_FS = 2e9 ;
   FActorVariation RX_FS;
-  RX_FS.Id = TEXT("tx_fs");
+  RX_FS.Id = TEXT("rx_fs");
   RX_FS.Type = EActorAttributeType::Float;
   RX_FS.RecommendedValues = { TEXT("2e9") };
   //params.RX_NOS = 2 ; 

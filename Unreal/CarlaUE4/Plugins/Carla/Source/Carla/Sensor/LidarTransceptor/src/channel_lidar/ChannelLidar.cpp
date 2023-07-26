@@ -41,15 +41,15 @@ int  ChannelLidar::init(parametersLiDAR *params){
 };
 
 /*----------------------------------------------------------------------------*/
-vector<double> ChannelLidar::run(vector<double> channel_input, double range, double rho, double angle_inc)
+vector<float> ChannelLidar::run(vector<float> channel_input, float range, float rho, float angle_inc)
 {
-  double delay = 2*range/LIGHT_SPEED;
+  float delay = 2*range/LIGHT_SPEED;
   int delay_samples = delay*FS*NOS;
 
-  double meas_delay = delay_samples/FS;
-  double meas_range = meas_delay*LIGHT_SPEED/2;
+  float meas_delay = delay_samples/FS;
+  float meas_range = meas_delay*LIGHT_SPEED/2;
 
-  double power_gain  = cos(angle_inc)*rho*ARX/(4*PI*pow(meas_range,2));
+  float power_gain  = cos(angle_inc)*rho*ARX/(4*PI*pow(meas_range,2));
   //double delta_phase = LIGHT_SPEED/LAMBDA0*meas_delay;
 
   if (DEBUG_CH)
@@ -60,11 +60,11 @@ vector<double> ChannelLidar::run(vector<double> channel_input, double range, dou
       cout << "Channel Power Gain: " << power_gain << endl;
     }
 
-  vector<double> channel_output = channel_input;
+  vector<float> channel_output = channel_input;
   
   // Multiplicación del vector por la ganancia del canal
   transform(channel_output.begin(), channel_output.end(), channel_output.begin(),
-	    [&power_gain](double element) { return element *= sqrt(power_gain); });
+	    [&power_gain](float element) { return element *= sqrt(power_gain); });
 
   // Desplazamiento según el retardo
   // Warning: Posible bug porque es un shift circular

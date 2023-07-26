@@ -44,10 +44,8 @@ class ChannelLidar
   /**El metodo init, utiliza la clase parametersLiDAR para determinar los valores de las
      variables que utiliza. */
   int init(parametersLiDAR *params);
-  vector<double> run(vector<double> channel_input, double range, double rho, double angle_inc); 
+  vector<float> run(vector<float> channel_input, float range, float rho, float angle_inc); 
   
-  // Interfaces
-  vector <double> out_channel;
   
   /*-----------------------------------------------------------------------*/
  private:

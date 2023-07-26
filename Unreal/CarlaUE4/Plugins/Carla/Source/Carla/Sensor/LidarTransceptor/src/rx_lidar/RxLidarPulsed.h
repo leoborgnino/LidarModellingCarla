@@ -46,15 +46,15 @@ public:
   /**El metodo init, utiliza la clase loadSettings para determinar los valores de las
      variables que utiliza. */
   int init(parametersLiDAR *params);
-  vector<double> run(vector<double> input_rx_from_tx, vector<double> input_rx_from_channel);    
+  vector<float> run(vector<float> input_rx_from_tx, vector<float> input_rx_from_channel);    
 
   // Interfaces
-  vector <double> out_bits;
+  vector <float> out_bits;
 
   /*-----------------------------------------------------------------------*/
 private:
   void exposeVar();
-  std::vector<double> convolucion(const std::vector<double>& signal, const std::vector<double>& kernel);
+  std::vector<float> convolucion(const std::vector<float>& signal, const std::vector<float>& kernel);
   // Params
   int MAX_RANGE,NOS;
   double FS, POWER_RX, RPD, NOISE;

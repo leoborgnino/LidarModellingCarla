@@ -40,7 +40,7 @@ int  TxLidarPulsed::init(parametersLiDAR *params){
 };
 
 /*----------------------------------------------------------------------------*/
-vector<double> TxLidarPulsed::run()
+vector<float> TxLidarPulsed::run()
 {
   out_bits.clear();
   //cout << "DEBUG1" << endl;

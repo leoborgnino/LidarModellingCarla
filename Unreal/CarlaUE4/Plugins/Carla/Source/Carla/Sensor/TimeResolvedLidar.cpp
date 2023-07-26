@@ -203,15 +203,16 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
       if (Description.TRANS_ON)
 	{
 	  // LiDAR Transceptor
-	  vector<double> output_tx;
+	  vector<float> output_tx;
 	  output_tx = tx_lidar->run();
       
       
-	  vector<double> output_channel;
+	  vector<float> output_channel;
 	  output_channel = channel_lidar->run(output_tx,Distance,ReflectivityValue,CosAngle); // Ojo calcula la intensidad diferente
       
-	  vector<double> output_rx;  
+	  vector<float> output_rx;  
 	  output_rx = rx_lidar->run(output_tx,output_channel);
+	  Detection.time_signal = output_rx;
       
 	  // Calculo de la distancia
 	  auto it = max_element(output_rx.begin(),output_rx.end());
@@ -235,10 +236,10 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
 		  
 		  UE_LOG(LogTemp, Log, TEXT("Vector2: %s"), *VectorIncidente_t.ToString());
 		  
-		  //cout << "*******************Salida RX***************" << endl;
-		  //for (auto i: output_tx)
-		  //	cout << i << " ";
-		  //cout << endl;
+		  cout << "******************* Detección ***************" << endl;
+		  for (auto& i : Detection.time_signal)
+		    cout <<  i << " ";
+		   cout << endl;
 		}
 	    }
 	  Detection.point.x = -vector_proc.X;
@@ -304,7 +305,7 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
       for (auto& hit : RecordedHits[idxChannel]) {
         FDetection Detection = ComputeDetection(hit, SensorTransform);
         if (PostprocessDetection(Detection))
-          LidarData.WritePointSync(Detection);
+	  LidarData.WritePointSync(Detection);	    
         else
           PointsPerChannel[idxChannel]--;
       }

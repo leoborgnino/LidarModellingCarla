@@ -7,6 +7,7 @@ from datetime import datetime
 import random
 import numpy as np
 from matplotlib import cm
+import matplotlib.pyplot as plt
 import open3d as o3d
 
 try:
@@ -21,8 +22,31 @@ def lidar_callback(point_cloud):
     """Recibe la nube de puntos desde el simulador y la guarda en formato binario"""
 
     data = np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
-    data = np.reshape(data, (int(data.shape[0] / 4), 4))
+    print(point_cloud)
+    total_points = 0
+    for i in range(point_cloud.channels):
+        total_points += point_cloud.get_point_count(i)
+        print(point_cloud.get_point_count(i))
 
+    points = data[0:total_points*4]
+    time_resolved_signals = data[total_points*4::]
+    print(len(points))
+    print(points)
+    print(len(time_resolved_signals))
+    print(time_resolved_signals)
+    #for i in data[]:
+    #    print(i)
+    data = np.reshape(points, (int(points.shape[0] / 4), 4))
+
+    len_signal = int(len(time_resolved_signals)/(total_points))
+    print(len_signal)
+    data2 = np.reshape(time_resolved_signals, (int(time_resolved_signals.shape[0] /  len_signal ), len_signal))
+
+    print(data)
+    print(data2)
+
+    np.savetxt('./logs/time_signal.txt', data2, delimiter=" ", fmt="%s")
+    
     data.tofile('./point_clouds/%.6d.bin' % point_cloud.frame)
     print('point cloud %.6d.bin guardada' % point_cloud.frame)
 
@@ -62,14 +86,18 @@ def main(arg):
         lidar_bp.set_attribute('upper_fov', str(2.0))
         lidar_bp.set_attribute('lower_fov', str(-24.8))
         lidar_bp.set_attribute('channels', str(16))
-        lidar_bp.set_attribute('range', str(40))
+        lidar_bp.set_attribute('range', str(20))
         lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
         lidar_bp.set_attribute('points_per_second', str(100000))
         lidar_bp.set_attribute('noise_stddev', str(0.01))
         lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
-        lidar_bp.set_attribute('debug_global',"true")
-        lidar_bp.set_attribute('model_transceptor',"false")
-        lidar_bp.set_attribute('model_intensity',"false")
+        lidar_bp.set_attribute('tx_fs',str(1e9))
+        lidar_bp.set_attribute('ch_fs',str(1e9))
+        lidar_bp.set_attribute('rx_fs',str(1e9))
+        lidar_bp.set_attribute('debug_global',"false")
+        lidar_bp.set_attribute('log_rx',"false")
+        lidar_bp.set_attribute('model_transceptor',"true")
+        lidar_bp.set_attribute('model_intensity',"true")
         lidar_bp.set_attribute('power_tx',str(50e-3))
 
         #Spawnea el LIDAR en la simulacion en la ubicacion especificado por argumentos

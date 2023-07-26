@@ -44,16 +44,16 @@ int  RxLidarPulsed::init(parametersLiDAR *params){
 };
 
 /*----------------------------------------------------------------------------*/
-vector<double> RxLidarPulsed::run(vector<double> input_rx_from_tx, vector<double> input_rx_from_channel)
+vector<float> RxLidarPulsed::run(vector<float> input_rx_from_tx, vector<float> input_rx_from_channel)
 {
-  vector<double> noise_vector;
+  vector<float> noise_vector;
 
   // Generador random
   unsigned seed = chrono::system_clock::now().time_since_epoch().count();
-  const double mean = 0.0;
-  const double stddev = 0.1;
+  const float mean = 0.0;
+  const float stddev = 0.1;
   default_random_engine generator(seed);
-  normal_distribution<double> dist(mean, stddev);
+  normal_distribution<float> dist(mean, stddev);
 
   if (DEBUG_RX)
     {
@@ -69,7 +69,7 @@ vector<double> RxLidarPulsed::run(vector<double> input_rx_from_tx, vector<double
     out_bits[ii] = input_rx_from_channel[ii] + sqrt(noise_power)*dist(generator);
 
   // MF
-  vector<double> matched_filter = input_rx_from_tx;
+  vector<float> matched_filter = input_rx_from_tx;
   reverse(matched_filter.begin(), matched_filter.end());
   out_bits = convolucion(matched_filter,out_bits);
   
@@ -81,8 +81,8 @@ void RxLidarPulsed::exposeVar(){
 
 }
 
-std::vector<double> RxLidarPulsed::convolucion(const std::vector<double>& signal, const std::vector<double>& kernel) {
-    std::vector<double> result(signal.size() + kernel.size() - 1, 0.0);
+std::vector<float> RxLidarPulsed::convolucion(const std::vector<float>& signal, const std::vector<float>& kernel) {
+    std::vector<float> result(signal.size() + kernel.size() - 1, 0.0);
 
     for (size_t i = 0; i < signal.size(); ++i) {
         for (size_t j = 0; j < kernel.size(); ++j) {
@@ -93,8 +93,8 @@ std::vector<double> RxLidarPulsed::convolucion(const std::vector<double>& signal
     return result;
 }
 
-//std::vector<double> RxLidarPulsed::convolucion(const std::vector<double>& signal, const std::vector<double>& kernel) {
-//    std::vector<double> result(signal.size(), 0.0);
+//std::vector<float> RxLidarPulsed::convolucion(const std::vector<float>& signal, const std::vector<float>& kernel) {
+//    std::vector<float> result(signal.size(), 0.0);
 //    int kernelRadius = kernel.size() / 2;
 //
 //    for (int i = 0; i < int(signal.size()); ++i) {
