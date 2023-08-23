@@ -94,7 +94,7 @@ def main(arg):
         lidar_bp.set_attribute('tx_fs',str(1e9))
         lidar_bp.set_attribute('ch_fs',str(1e9))
         lidar_bp.set_attribute('rx_fs',str(1e9))
-        lidar_bp.set_attribute('debug_global',"false")
+        lidar_bp.set_attribute('debug_global',"true")
         lidar_bp.set_attribute('log_rx',"false")
         lidar_bp.set_attribute('model_transceptor',"true")
         lidar_bp.set_attribute('model_intensity',"true")
@@ -109,7 +109,7 @@ def main(arg):
         lidar.listen(lambda data: lidar_callback(data))
         
         world.tick()
-        time.sleep(1.0)
+        time.sleep(10.0)
 
     finally:
         world.apply_settings(original_settings)
@@ -130,7 +130,7 @@ if __name__ == "__main__":
         help='posicion del sensor en el eje Y en metros, default:0.0')
     argparser.add_argument(
         '-z',
-        default=1.5,
+        default=1,
         type=float,
         help='posicion del sensor en el eje Z en metros, default:1.5')
     args = argparser.parse_args()

@@ -20,6 +20,8 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/CollisionProfile.h"
 #include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
+#include "Materials/MaterialParameterCollectionInstance.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "JsonUtilities.h"
 
 FActorDefinition ATimeResolvedLidar::GetSensorDefinition()
@@ -169,11 +171,18 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
 	}
       }
 
+      float MaterialSpecular = GetHitMaterialSpecular(HitInfo);
+      if(params.DEBUG_GLOBAL)
+	  UE_LOG(LogTemp, Log, TEXT("Specular: %s"), MaterialSpecular);
       //Segun si el nombre del actor, corresponde a un actor al cual computar su material
-      if(ActorFound){
-    
+      if( ActorFound ){
+     
 	//Se obtiene el nombre del material del hit
 	FString MaterialNameHit = GetHitMaterialName(HitInfo);
+	//FString MaterialSpecular = GetHitMaterialName(HitInfo);
+	
+	if(params.DEBUG_GLOBAL)
+	  UE_LOG(LogTemp, Log, TEXT("Material: %s"), *MaterialNameHit);
 
 	//Se recorre la lista de materiales con su respectiva reflectividad
 	for (auto& Elem : ReflectivityMap)
@@ -183,6 +192,8 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
 	    if(MaterialNameHit.Contains(MaterialKey)){
 	      //cuando se encuentra, se obtiene el valor de reflectividad asociado a ese material
 	      ReflectivityValue = (float)Elem.Value;
+	      //if(params.DEBUG_GLOBAL)
+	      //UE_LOG(LogTemp, Log, TEXT("Reflectividad: %f"), ReflectivityValue);
 	      MaterialFound=true;
 	      //WriteFile(MaterialNameHit);
 	      break;
@@ -208,7 +219,7 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
       
       
 	  vector<float> output_channel;
-	  output_channel = channel_lidar->run(output_tx,Distance,ReflectivityValue,CosAngle); // Ojo calcula la intensidad diferente
+	  output_channel = channel_lidar->run(output_tx,Distance,MaterialSpecular,CosAngle); // Ojo calcula la intensidad diferente
       
 	  vector<float> output_rx;  
 	  output_rx = rx_lidar->run(output_tx,output_channel);
@@ -411,12 +422,32 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
       if (HitInfo.FaceIndex != -1) {
         int32 section = 0;
         UMaterialInterface* MaterialIntHit = ComponentHit->GetMaterialFromCollisionFaceIndex(HitInfo.FaceIndex, section);
-
         return MaterialIntHit->GetName();
 
       }
     }
 
     return FString(TEXT("NoMaterial"));
+    
+  }
+
+  float ATimeResolvedLidar::GetHitMaterialSpecular(const FHitResult& HitInfo) const{
+
+    UPrimitiveComponent* ComponentHit = HitInfo.GetComponent();
+    
+    if(ComponentHit){
+      if (HitInfo.FaceIndex != -1) {
+        int32 section = 0;
+        UMaterialInterface* MaterialIntHit = ComponentHit->GetMaterialFromCollisionFaceIndex(HitInfo.FaceIndex, section);
+	float ScalarValue;
+	UMaterialInstanceDynamic* MaterialInstance = UMaterialInstanceDynamic::Create(MaterialIntHit, nullptr);
+	bool bScalarFound = MaterialInstance->GetScalarParameterValue(FName("Specular"), ScalarValue);
+
+        return ScalarValue;
+
+      }
+    }
+
+    return -1;
     
   }
