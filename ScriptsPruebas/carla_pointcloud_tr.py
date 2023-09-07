@@ -67,7 +67,7 @@ def main(arg):
     """Spawnea el LIDAR HDL-64E y genera un paso de simulacion"""
     #Cliente y simulador
     client = carla.Client('localhost', 2000)
-    client.set_timeout(10.0)
+    client.set_timeout(30.0)
 
     world = client.get_world()
 
@@ -83,22 +83,24 @@ def main(arg):
         #Crea el LIDAR con las especificaciones de HDL-64E
         blueprint_library = world.get_blueprint_library()
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast_time_resolved')
-        lidar_bp.set_attribute('upper_fov', str(2.0))
-        lidar_bp.set_attribute('lower_fov', str(-24.8))
+        lidar_bp.set_attribute('upper_fov', str(15.0))
+        lidar_bp.set_attribute('lower_fov', str(-15.0))
         lidar_bp.set_attribute('channels', str(16))
         lidar_bp.set_attribute('range', str(20))
         lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
-        lidar_bp.set_attribute('points_per_second', str(100000))
+        lidar_bp.set_attribute('points_per_second', str(1152000))
         lidar_bp.set_attribute('noise_stddev', str(0.01))
         lidar_bp.set_attribute('dropoff_general_rate',str(0.0))
         lidar_bp.set_attribute('tx_fs',str(1e9))
         lidar_bp.set_attribute('ch_fs',str(1e9))
         lidar_bp.set_attribute('rx_fs',str(1e9))
         lidar_bp.set_attribute('debug_global',"true")
+        #lidar_bp.set_attribute('debug_rx',"true")
         lidar_bp.set_attribute('log_rx',"false")
         lidar_bp.set_attribute('model_transceptor',"true")
         lidar_bp.set_attribute('model_intensity',"true")
-        lidar_bp.set_attribute('power_tx',str(50e-3))
+        #lidar_bp.set_attribute('power_tx',str(50e-3))
+        lidar_bp.set_attribute('rpd_rx',str(0.1))
 
         #Spawnea el LIDAR en la simulacion en la ubicacion especificado por argumentos
         lidar_transform = carla.Transform(carla.Location(arg.x, arg.y, arg.z), 

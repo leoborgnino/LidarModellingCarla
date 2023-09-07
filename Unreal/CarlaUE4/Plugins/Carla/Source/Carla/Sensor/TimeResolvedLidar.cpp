@@ -180,7 +180,7 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
 	//Se obtiene el nombre del material del hit
 	FString MaterialNameHit = GetHitMaterialName(HitInfo);
 	//FString MaterialSpecular = GetHitMaterialName(HitInfo);
-	
+
 	if(params.DEBUG_GLOBAL)
 	  UE_LOG(LogTemp, Log, TEXT("Material: %s"), *MaterialNameHit);
 

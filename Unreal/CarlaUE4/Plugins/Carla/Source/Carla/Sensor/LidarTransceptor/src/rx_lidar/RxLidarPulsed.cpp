@@ -39,7 +39,7 @@ int  RxLidarPulsed::init(parametersLiDAR *params){
   POWER_RX = params->PRX;    
   RPD = params->RPD;    
 
-  noise_power = Q_ELECT/RPD*FS;
+  noise_power = RPD;//Q_ELECT/RPD*FS; // FIXME PLS UWU
   return 0;
 };
 
@@ -51,7 +51,7 @@ vector<float> RxLidarPulsed::run(vector<float> input_rx_from_tx, vector<float> i
   // Generador random
   unsigned seed = chrono::system_clock::now().time_since_epoch().count();
   const float mean = 0.0;
-  const float stddev = 0.1;
+  const float stddev = noise_power;
   default_random_engine generator(seed);
   normal_distribution<float> dist(mean, stddev);
 
