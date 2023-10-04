@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import open3d as o3d
+import KittiLabel
 
 try:
     sys.path.append('../PythonAPI/carla/dist/carla-0.9.13-py3.8-linux-x86_64.egg')
@@ -18,40 +19,44 @@ except IndexError:
 
 import carla
 
+args = 0
+bounding_boxes = 0
+
+
 def lidar_callback(point_cloud):
     """Recibe la nube de puntos desde el simulador y la guarda en formato binario"""
 
     data = np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
-    print(point_cloud)
+    #print(point_cloud)
     total_points = 0
     for i in range(point_cloud.channels):
         total_points += point_cloud.get_point_count(i)
-        print(point_cloud.get_point_count(i))
+        #print(point_cloud.get_point_count(i))
 
     points = data[0:total_points*4]
     time_resolved_signals = data[total_points*4::]
-    print(len(points))
-    print(points)
-    print(len(time_resolved_signals))
-    print(time_resolved_signals)
+    #print(len(points))
+    #print(points)
+    #print(len(time_resolved_signals))
+    #print(time_resolved_signals)
     #for i in data[]:
     #    print(i)
     data = np.reshape(points, (int(points.shape[0] / 4), 4))
 
     len_signal = int(len(time_resolved_signals)/(total_points))
-    print(len_signal)
+    #print(len_signal)
     data2 = np.reshape(time_resolved_signals, (int(time_resolved_signals.shape[0] /  len_signal ), len_signal))
 
-    print(data)
-    print(data2)
+    #print(data)
+    #print(data2)
 
     np.savetxt('./logs/time_signal.txt', data2, delimiter=" ", fmt="%s")
     
-    data.tofile('./point_clouds/%.6d.bin' % point_cloud.frame)
-    print('point cloud %.6d.bin guardada' % point_cloud.frame)
+    data.tofile('./point_clouds/tests/%.6d_%d_%d_%d.bin' % (point_cloud.frame,args.x,args.y,args.z))
+    print('point cloud %.6d_%d_%d_%d.bin guardada' % (point_cloud.frame,args.x,args.y,args.z))
 
     # Load binary point cloud
-    bin_pcd = np.fromfile('./point_clouds/%.6d.bin' % point_cloud.frame, dtype=np.float32)
+    bin_pcd = np.fromfile('./point_clouds/tests/%.6d_%d_%d_%d.bin' % (point_cloud.frame,args.x,args.y,args.z), dtype=np.float32)
     
     # Reshape and drop reflection values
     points = bin_pcd.reshape((-1, 4))[:, 0:3]
@@ -62,6 +67,8 @@ def lidar_callback(point_cloud):
     # Save to whatever format you like
     o3d.io.write_point_cloud('./point_clouds/%.6d.pcd' % point_cloud.frame, o3d_pcd)
     print('point cloud %.6d.pcd guardada' % point_cloud.frame)
+
+    print(bounding_boxes)
     
 def main(arg):
     """Spawnea el LIDAR HDL-64E y genera un paso de simulacion"""
@@ -70,6 +77,8 @@ def main(arg):
     client.set_timeout(30.0)
 
     world = client.get_world()
+
+    args = arg
 
     try:
         #Setea modo sincrono en la simulacion con delta fijo
@@ -83,8 +92,8 @@ def main(arg):
         #Crea el LIDAR con las especificaciones de HDL-64E
         blueprint_library = world.get_blueprint_library()
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast_time_resolved')
-        lidar_bp.set_attribute('upper_fov', str(15.0))
-        lidar_bp.set_attribute('lower_fov', str(-15.0))
+        lidar_bp.set_attribute('upper_fov', str(16.5))
+        lidar_bp.set_attribute('lower_fov', str(-16.5))
         lidar_bp.set_attribute('channels', str(16))
         lidar_bp.set_attribute('range', str(20))
         lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
@@ -97,7 +106,7 @@ def main(arg):
         lidar_bp.set_attribute('debug_global',"true")
         #lidar_bp.set_attribute('debug_rx',"true")
         lidar_bp.set_attribute('log_rx',"false")
-        lidar_bp.set_attribute('model_transceptor',"true")
+        lidar_bp.set_attribute('model_transceptor',"false")
         lidar_bp.set_attribute('model_intensity',"true")
         #lidar_bp.set_attribute('power_tx',str(50e-3))
         lidar_bp.set_attribute('rpd_rx',str(0.1))
@@ -107,6 +116,14 @@ def main(arg):
                             carla.Rotation(pitch=0.0, yaw=0.0, roll=0.0))
         lidar = world.spawn_actor(lidar_bp, lidar_transform)
 
+        box_bp = blueprint_library.find('static.prop.box01')
+        box_transform = carla.Transform(carla.Location(1.3, -1.3, 0.5), 
+                            carla.Rotation(pitch=0.0, yaw=0.0, roll=0.0))
+        box = world.spawn_actor(box_bp,box_transform)
+        
+        global bounding_boxes
+        bounding_boxes = box.bounding_box
+        
         #Define la funcion de callback al recibir una nube de puntos
         lidar.listen(lambda data: lidar_callback(data))
         

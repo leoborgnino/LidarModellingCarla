@@ -253,8 +253,8 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
 		   cout << endl;
 		}
 	    }
-	  Detection.point.x = -vector_proc.X;
-	  Detection.point.y = -vector_proc.Y;
+	  Detection.point.x = vector_proc.X;
+	  Detection.point.y = vector_proc.Y;
 	  Detection.point.z = -vector_proc.Z;
 	}
 
