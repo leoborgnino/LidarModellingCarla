@@ -406,12 +406,14 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
 
   }
 
-  void ATimeResolvedLidar::WriteFile(FString String) const{
-    const FString FilePath = FPaths::ProjectContentDir() + "/JsonFiles/actores.txt";
+  bool ATimeResolvedLidar::WriteFile(FString Filename, FString String) {
+    const FString FilePath = FPaths::ProjectContentDir() + TEXT("/LogFiles/") + Filename;
+
     FString new_String = FString::Printf( TEXT( "%s \n" ), *String);
     FFileHelper::SaveStringToFile(new_String, *FilePath,
     FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
 
+    return true;
   }
 
   FString ATimeResolvedLidar::GetHitMaterialName(const FHitResult& HitInfo) const{

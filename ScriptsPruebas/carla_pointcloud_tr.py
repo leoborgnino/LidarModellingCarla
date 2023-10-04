@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import open3d as o3d
-import KittiLabel
+from kitti_label import KittiLabel
 
 try:
     sys.path.append('../PythonAPI/carla/dist/carla-0.9.13-py3.8-linux-x86_64.egg')

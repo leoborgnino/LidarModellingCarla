@@ -214,13 +214,8 @@ ARayCastLidar::FDetection ARayCastLidar::ComputeDetection(const FHitResult& HitI
   }
 
   //Funcion implementada para leer desde un json, la reflectividad asociada a cada material
-<<<<<<< HEAD
-  //y cargarlo en el ReflectivityMap
-  void ARayCastLidar::LoadReflectivityMapFromJson(){
-=======
   //y cargarlo en el ReflectanceMap
   void ARayCastLidar::LoadReflectanceMapFromJson(){
->>>>>>> 54e400cd2340df85788c5abf57978c03f2def497
 
     //path del archivo json
     const FString FilePath = FPaths::ProjectDir() + "/LidarModelFiles/materials.json";

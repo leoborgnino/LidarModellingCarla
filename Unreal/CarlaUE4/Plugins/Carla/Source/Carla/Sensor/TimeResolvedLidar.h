@@ -56,7 +56,7 @@ private:
   bool PostprocessDetection(FDetection& Detection) const;
 
   void ComputeAndSaveDetections(const FTransform& SensorTransform) override;
-  void WriteFile(FString String) const;
+  bool WriteFile(FString Filename, FString String) override;
 
   FLidarData LidarData;
 
