@@ -28,6 +28,10 @@
         {
             "unreal_actor_name": "Mercedes",             
             "api_bp_name": "vehicle.mercedes.coupe"
-        }   
+        },
+        {
+            "unreal_actor_name": "Bike",             
+            "api_bp_name": "vehicle.diamondback.century"
+        }    
     ]
 }

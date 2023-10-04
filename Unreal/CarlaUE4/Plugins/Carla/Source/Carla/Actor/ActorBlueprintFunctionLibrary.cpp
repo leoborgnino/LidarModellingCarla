@@ -979,6 +979,41 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   INTENSITY_CALC.Id = TEXT("model_intensity");
   INTENSITY_CALC.Type = EActorAttributeType::Bool;
   INTENSITY_CALC.RecommendedValues = { TEXT("false") };
+   // Model Angle of Incidence in intensity.
+  FActorVariation ModelAngleofIncidence;
+  ModelAngleofIncidence.Id = TEXT("model_angle");
+  ModelAngleofIncidence.Type = EActorAttributeType::Bool;
+  ModelAngleofIncidence.RecommendedValues = { TEXT("false") };
+  // Model Material in intensity.
+  FActorVariation ModelMaterial;
+  ModelMaterial.Id = TEXT("model_material");
+  ModelMaterial.Type = EActorAttributeType::Bool;
+  ModelMaterial.RecommendedValues = { TEXT("false") };
+  // Noise in intensity.
+  FActorVariation StdDevIntensity;
+  StdDevIntensity.Id = TEXT("noise_stddev_intensity");
+  StdDevIntensity.Type = EActorAttributeType::Float;
+  StdDevIntensity.RecommendedValues = { TEXT("0.0") };
+  // Model Reflectance limits function
+  FActorVariation ModelReflectanceLimitsFunction;
+  ModelReflectanceLimitsFunction.Id = TEXT("model_reflectance_limits_function");
+  ModelReflectanceLimitsFunction.Type = EActorAttributeType::Bool;
+  ModelReflectanceLimitsFunction.RecommendedValues = { TEXT("false") };
+  // Coefficient a of reflectance limits function-> R(d) = a + b.d^2
+  FActorVariation ReflectanceLimitsFunctionCoeffA;
+  ReflectanceLimitsFunctionCoeffA.Id = TEXT("reflectance_limits_function_coeff_a");
+  ReflectanceLimitsFunctionCoeffA.Type = EActorAttributeType::Float;
+  ReflectanceLimitsFunctionCoeffA.RecommendedValues = { TEXT("0.0") };
+  // Coefficient b of reflectance limits function-> R(d) = a + b.d^2
+  FActorVariation ReflectanceLimitsFunctionCoeffB;
+  ReflectanceLimitsFunctionCoeffB.Id = TEXT("reflectance_limits_function_coeff_b");
+  ReflectanceLimitsFunctionCoeffB.Type = EActorAttributeType::Float;
+  ReflectanceLimitsFunctionCoeffB.RecommendedValues = { TEXT("0.0") };
+  // Model HDL64 lasers groups
+  FActorVariation ModelHDL64LasersGroups;
+  ModelHDL64LasersGroups.Id = TEXT("model_HDL64_lasers_groups");
+  ModelHDL64LasersGroups.Type = EActorAttributeType::Bool;
+  ModelHDL64LasersGroups.RecommendedValues = { TEXT("false") };
 
   if (Id == "ray_cast") {
     Definition.Variations.Append({
@@ -994,6 +1029,13 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       DropOffIntensityLimit,
       DropOffAtZeroIntensity,
       StdDevLidar,
+      ModelAngleofIncidence,
+      ModelMaterial,
+      StdDevIntensity,
+      ModelReflectanceLimitsFunction,
+      ReflectanceLimitsFunctionCoeffA,
+      ReflectanceLimitsFunctionCoeffB,
+      ModelHDL64LasersGroups,
       HorizontalFOV});
   }
   else if (Id == "ray_cast_semantic") {
@@ -1004,6 +1046,8 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       Frequency,
       UpperFOV,
       LowerFOV,
+      ModelAngleofIncidence,
+      ModelMaterial,
       HorizontalFOV});
   }
   else if (Id == "ray_cast_time_resolved"){
@@ -1677,7 +1721,6 @@ void UActorBlueprintFunctionLibrary::SetLidar(
       RetrieveActorAttributeToFloat("dropoff_zero_intensity", Description.Variations, Lidar.DropOffAtZeroIntensity);
   Lidar.NoiseStdDev =
       RetrieveActorAttributeToFloat("noise_stddev", Description.Variations, Lidar.NoiseStdDev);
-
   Lidar.LAMBDA0 =
     RetrieveActorAttributeToFloat("lambda_laser", Description.Variations, Lidar.LAMBDA0);
   Lidar.MAX_RANGE =
@@ -1714,7 +1757,22 @@ void UActorBlueprintFunctionLibrary::SetLidar(
     RetrieveActorAttributeToBool("model_transceptor", Description.Variations, Lidar.TRANS_ON);
   Lidar.INTENSITY_CALC =
     RetrieveActorAttributeToBool("model_intensity", Description.Variations, Lidar.INTENSITY_CALC);
-
+  Lidar.ModelAngleofIncidence =
+      RetrieveActorAttributeToBool("model_angle", Description.Variations, Lidar.ModelAngleofIncidence);
+  Lidar.ModelMaterial =
+      RetrieveActorAttributeToBool("model_material", Description.Variations, Lidar.ModelMaterial);
+  Lidar.NoiseStdDev =
+      RetrieveActorAttributeToFloat("noise_stddev", Description.Variations, Lidar.NoiseStdDev);
+  Lidar.NoiseStdDevIntensity = 
+      RetrieveActorAttributeToFloat("noise_stddev_intensity", Description.Variations, Lidar.NoiseStdDevIntensity);
+  Lidar.ModelReflectanceLimitsFunction =
+      RetrieveActorAttributeToBool("model_reflectance_limits_function", Description.Variations, Lidar.ModelReflectanceLimitsFunction);
+  Lidar.ReflectanceLimitsFunctionCoeffA =
+      RetrieveActorAttributeToFloat("reflectance_limits_function_coeff_a", Description.Variations, Lidar.ReflectanceLimitsFunctionCoeffA);
+  Lidar.ReflectanceLimitsFunctionCoeffB =
+      RetrieveActorAttributeToFloat("reflectance_limits_function_coeff_b", Description.Variations, Lidar.ReflectanceLimitsFunctionCoeffB);
+  Lidar.ModelHDL64LasersGroups =
+      RetrieveActorAttributeToBool("model_HDL64_lasers_groups", Description.Variations, Lidar.ModelHDL64LasersGroups);
 }
 
 void UActorBlueprintFunctionLibrary::SetGnss(

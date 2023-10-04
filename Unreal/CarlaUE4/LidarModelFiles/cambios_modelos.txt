@@ -1,0 +1,17 @@
+En los static mesh de:
+citronc3
+auditt
+audia2
+seat leon
+
+se cambio el material GlassInstance que cubre las luces delanteras,
+por una copia del mismo, ue se llama LightGlass
+
+en el static mesh de: 
+road bike
+
+se le cambio el nombre al material:
+NewMaterialInstanceConstant
+
+por:
+BikeExterior

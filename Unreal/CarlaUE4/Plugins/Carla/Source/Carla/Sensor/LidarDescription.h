@@ -126,4 +126,32 @@ struct CARLA_API FLidarDescription
   
   UPROPERTY(EditAnywhere)
   bool INTENSITY_CALC = true;
+
+  /// Model angle of incidence in LiDAR
+  UPROPERTY(EditAnywhere)
+  bool ModelAngleofIncidence = false;
+
+  /// Model material in LiDAR
+  UPROPERTY(EditAnywhere)
+  bool ModelMaterial = false;
+
+  /// Std Dev of noise in intensity
+  UPROPERTY(EditAnywhere)
+  float NoiseStdDevIntensity = 0.0f;
+
+  /// Model reflectance limits function 
+  UPROPERTY(EditAnywhere)
+	bool ModelReflectanceLimitsFunction = false;
+
+  /// Coefficient a of reflectance limits function-> R(d) = a + b.d^2
+  UPROPERTY(EditAnywhere)
+  float ReflectanceLimitsFunctionCoeffA = 0.0f;
+  
+  /// Coefficient b of reflectance limits function-> R(d) = a + b.d^2
+  UPROPERTY(EditAnywhere)
+  float ReflectanceLimitsFunctionCoeffB = 0.0f;
+
+  /// Model HDL64 lasers groups
+  UPROPERTY(EditAnywhere)
+  bool ModelHDL64LasersGroups = false;
 };

@@ -1,52 +1,64 @@
 {
     "materials": [
+    	{
+            "name": "BikeExterior",
+            "reflectivity": 0.58
+        },
+        {
+            "name": "BikeWheels",
+            "reflectivity": 0.15
+        },
         {
             "name": "Rubber",
-            "reflectivity": 0.3
+            "reflectivity": 0.15
         },
         {
             "name": "CarExterior",
-            "reflectivity": 0.7
+            "reflectivity": 0.58
         },        
         {
             "name": "Body",
-            "reflectivity": 0.7
+            "reflectivity": 0.58
         },
         {
             "name": "Interior",
-            "reflectivity": 0.3
+            "reflectivity": 0.15
         },
         {
             "name": "Light",
-            "reflectivity": 1.0
+            "reflectivity": 1.5
         },
         {
             "name": "Glass",
-            "reflectivity": 0.0
+            "reflectivity": 0.00007
         },
         {
             "name": "LicensePlate",
-            "reflectivity": 1.0
+            "reflectivity": 1.5
         },
         {
             "name": "Aluminium",
-            "reflectivity": 0.7
+            "reflectivity": 0.92
         },
         {
             "name": "Wheel",
-            "reflectivity": 0.7
+            "reflectivity": 0.58
         },
         {
             "name": "Plastic",
-            "reflectivity": 0.5
+            "reflectivity": 0.15
         },
         {
             "name": "Grill",
-            "reflectivity": 0.5
+            "reflectivity": 0.15
+        },
+        {
+            "name": "Pedestrian",
+            "reflectivity": 0.35
         },
         {
             "name": "NoMaterial",
-            "reflectivity": 0.4
+            "reflectivity": 0.10
         }
     ]
 }

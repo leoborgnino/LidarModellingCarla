@@ -26,7 +26,9 @@ except IndexError:
 
 import carla
 
-from camera_utils import build_projection_matrix, w3D_to_cam3D, w3D_to_cam2D, bbox_in_image
+from transformation_utils import build_projection_matrix, w3D_to_cam3D, w3D_to_cam2D, bbox_in_image,w3D_to_lidar3D, save_calibration_matrices, is_in_image, is_in_front
+from carla_utils import generate_lidar_bp,generate_camera_bp, spawn_vehicles, save_image, save_pointcloud, sensor_callback
+
 from kitti_label import KittiLabel
 
 """ OUTPUT FOLDERS """
@@ -44,27 +46,10 @@ LABEL_PATH = os.path.join(OUTPUT_FOLDER, 'label_2/{0:06}.txt')
 IMAGE_PATH = os.path.join(OUTPUT_FOLDER, 'image_2/{0:06}.png')
 CALIBRATION_PATH = os.path.join(OUTPUT_FOLDER, 'calib/{0:06}.txt')
 
+"""
 
 def sensor_callback(data,queue):
     queue.put(data)
-
-
-def create_output_folders():
-    current_datetime = datetime.now().strftime("%d-%m-%y_%X")
-    output_directory = os.path.join(current_datetime,OUTPUT_FOLDER)
-
-    images_path = create_folder(output_directory, IMAGES_FOLDER)
-    pointcloud_path = create_folder(output_directory, POINTCLOUDS_FOLDER)
-    calib_path = create_folder(output_directory, CALIB_FOLDER)
-    labels_path = create_folder(output_directory, LABELS_FOLDER)
-
-    return images_path,pointcloud_path,calib_path,labels_path
-
-def create_folder(output_directory,folder):
-    output_folder = os.path.join(output_directory,folder)
-    os.makedirs(output_folder)
-
-    return output_folder
 
 def generate_lidar_bp(blueprint_library,delta):
     lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
@@ -126,21 +111,25 @@ def save_image(images_path, image_data):
 def save_pointcloud(pointclouds_path,pointcloud):
     pc = np.copy(np.frombuffer(pointcloud.raw_data, dtype=np.dtype('f4')))
     pc = np.reshape(pc, (int(pc.shape[0] / 4), 4))
+    #UNREAL Y EL LIDAR INTERNO UTILIZA EL SISTEMA X: Foward, Y:Right, Z: Up
+    #PERO EL LIDAR EN KITTI UTILIZA X: Foward, Y:Left, Z: Up
+    #Por lo que hay que invertir las coordenas y
+
+    pc[:,1] = -pc[:,1]
     pointcloud_path = './%s/%.6d.bin' % (pointclouds_path, pointcloud.frame) 
     pc.tofile(pointcloud_path)
     #print('point cloud %.6d.bin guardada' % lidar_data.frame)
 
 def is_in_image(npc,K,w2c,image_w,image_h):
-    """ Determinar si el vehiculo npc se enceuntra dentro de los limites de la imagen """
+    "" Determinar si el vehiculo npc se enceuntra dentro de los limites de la imagen ""
 
-    npc_center_world_pos = get_center_world_pos(npc)
-    npc_center_image_pos = w3D_to_cam2D(npc_center_world_pos,K,w2c)
+    npc_center_image_pos = w3D_to_cam2D(npc.get_transform().location,K,w2c)
 
     return (npc_center_image_pos[0] > 0.0 and  npc_center_image_pos[0] < image_w and \
             npc_center_image_pos[1] > 0.0 and  npc_center_image_pos[1] < image_h  )
 
 def is_in_front(vehicle,npc):
-    """ Determinar si el actor se encuentra al frente del vehiculo q posee la camara """
+    "" Determinar si el actor se encuentra al frente del vehiculo q posee la camara ""
 
     #Prod punto entre el forward vector del vehiculo y el vector entre el vehiculo y el actor
     forward_vec = vehicle.get_transform().get_forward_vector()
@@ -149,12 +138,23 @@ def is_in_front(vehicle,npc):
     #si el prod punto es mayor a 1, significa q el actor esta al frente del vehiculo
     return (forward_vec.dot(ray) > 1)
 
+"""
+def create_folder(output_directory,folder):
+    output_folder = os.path.join(output_directory,folder)
+    os.makedirs(output_folder)
 
-def get_center_world_pos(vehicle):
-    vehicle_world_pos = vehicle.get_transform().location
-    vehicle_world_pos.z += vehicle.bounding_box.extent.z
+    return output_folder
 
-    return vehicle_world_pos
+def create_output_folders():
+    current_datetime = datetime.now().strftime("%d-%m-%y_%X")
+    output_directory = os.path.join(current_datetime,OUTPUT_FOLDER)
+
+    images_path = create_folder(output_directory, IMAGES_FOLDER)
+    pointcloud_path = create_folder(output_directory, POINTCLOUDS_FOLDER)
+    calib_path = create_folder(output_directory, CALIB_FOLDER)
+    labels_path = create_folder(output_directory, LABELS_FOLDER)
+
+    return images_path,pointcloud_path,calib_path,labels_path
 
 def load_list_of_vehicles():
     file = open(LIST_VEHICLES_PATH)
@@ -190,7 +190,7 @@ def main(arg):
         traffic_manager.set_global_distance_to_leading_vehicle(2.5) #distancia a mantener entre vehiculos
         #traffic_manager.set_hybrid_physics_mode(True) #desactiva las fisicas de los vehiculos lejanos al vehiculo hero, reduce el computo
         #traffic_manager.set_hybrid_physics_radius(100.0) #dentro de este radio, si se calculan las fisicas
-        
+        traffic_manager.global_percentage_speed_difference(80)
         delta = 0.05
         #delta = 0.1
         settings.fixed_delta_seconds = delta
@@ -217,7 +217,7 @@ def main(arg):
         vehicle = world.spawn_actor(
             blueprint=vehicle_bp,
             transform=vehicle_transform)
-        vehicle.set_autopilot(True)
+        vehicle.set_autopilot(True,traffic_manager.get_port())
 
         #las coordenadas son relativas al vehiculo
         #x es el eje correspondiente a la direccion del auto, positivo seria hacia adelante
@@ -228,9 +228,9 @@ def main(arg):
 
         lidar = world.spawn_actor(
             blueprint=lidar_bp,
-            transform=carla.Transform(carla.Location(x=-0.27, z=1.73)), #posicion segun Kitti
+            transform=carla.Transform(carla.Location(x=0.27, z=1.73)), #posicion segun Kitti
             attach_to=vehicle)
-
+        #CAMBIOS FAVORABLES - UBICACION LIDAR Y VELOCIDAD REDUCIDA
         #Funciones de callback para almacenar imagen y nube de puntos
         image_queue= Queue()
         lidar_queue= Queue()
@@ -260,17 +260,19 @@ def main(arg):
         frames = arg.frames
         frames_captured = 0
         ticks = 0
-
-        # Retrieve the first image
-        world.tick()
+        frames_between_captures = 0
 
         # Calculate the camera projection matrix to project from 3D -> 2D
         image_w = camera_bp.get_attribute("image_size_x").as_int()
         image_h = camera_bp.get_attribute("image_size_y").as_int()
         fov = camera_bp.get_attribute("fov").as_float()
         K = build_projection_matrix(image_w, image_h, fov)
-        
 
+        #Matriz de rotacion entre coordenadas de lidar y coordenadas de camara    
+        rot_matrix = np.array([[0, -1, 0],
+                                [0, 0, -1],
+                                [1, 0,  0]])
+        
         while frames_captured < frames:
 
             world.tick()
@@ -284,9 +286,17 @@ def main(arg):
             if not lidar_queue.empty():
                 pointcloud = lidar_queue.get()
             
+            frames_between_captures += 1
 
             #cuando se tengan ambos datos (imagen y nube de puntos) de un mismo frame, se almacenan ambos
-            if ticks > 1 and (image.frame == pointcloud.frame):
+            if ticks > 1 and (image.frame == pointcloud.frame) and frames_between_captures==50:
+
+                frames_between_captures = 0
+
+                frame = pointcloud.frame
+                frames_captured = frames_captured + 1 
+                sys.stdout.write("\r Capturados %d frames de %d" % (frames_captured,frames) + ' ')
+                sys.stdout.flush()
 
                 #guardar imagen
                 save_image(images_path,image)
@@ -294,17 +304,40 @@ def main(arg):
                 #guardar nube de puntos
                 save_pointcloud(pointclouds_path,pointcloud)
 
-                frames_captured = frames_captured + 1 
-
                 #crear archivo de label
-                label_file_name = './%s/%.6d.txt' % (labels_path, pointcloud.frame)
+                label_file_name = './%s/%.6d.txt' % (labels_path, frame)
                 label_file = open(label_file_name,'w')
-
-                sys.stdout.write("\r Capturados %d frames de %d" % (frames_captured,frames) + ' ')
-                sys.stdout.flush()
 
                 # Posicion de la camara para transformar coordenadas
                 world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
+
+                #posicion del lidar para transformar coordenadas
+                lidar_2_world = np.array(lidar.get_transform().get_matrix())
+                world_2_lidar = np.array(lidar.get_transform().get_inverse_matrix())
+
+                #Matriz Transformacion de lidar a cam, solo traslacion sin rotacion de ejes
+                lidar_2_cam = np.dot(world_2_camera,lidar_2_world)
+
+                #Vector de traslacion de lidar a cam
+                translation_vector = np.array([lidar_2_cam[0,3],lidar_2_cam[1,3],lidar_2_cam[2,3]])
+                
+                #Matriz de transformacion, traslacion + rotacion
+                rot_trans_matrix = np.column_stack((rot_matrix,translation_vector))
+
+                calibration_file_name = './%s/%.6d.txt' % (calib_path,frame)
+                save_calibration_matrices(calibration_file_name,K,rot_trans_matrix)
+
+                #POINTCLOUD PARA FILTRAR CON BOUNDING BOXES
+                pc_data = np.copy(np.frombuffer(pointcloud.raw_data, dtype=np.dtype('f4')))
+                pc_data = np.reshape(pc_data, (int(pc_data.shape[0] / 4), 4))
+                #UNREAL Y EL LIDAR INTERNO UTILIZA EL SISTEMA X: Foward, Y:Right, Z: Up
+                #PERO EL LIDAR EN KITTI UTILIZA X: Foward, Y:Left, Z: Up
+                #Por lo que hay que invertir las coordenas y
+                pc_data[:,1] = -pc_data[:,1]
+                pc_points=pc_data[:, :-1]
+
+                o3d_pointcloud = o3d.geometry.PointCloud()
+                o3d_pointcloud.points = o3d.utility.Vector3dVector(pc_points)
 
                 #Obtener todos los actores "vehiculos" y para cada uno
                 for npc in world.get_actors().filter('*vehicle*'):
@@ -317,12 +350,61 @@ def main(arg):
                         dist = npc.get_transform().location.distance(vehicle.get_transform().location)
 
                         #Solo se computan las bounding boxes de actores en frente y que esten a menos de una cierta distancia
-                        if npc_is_in_front and dist < 50:
+                        if npc_is_in_front and dist < 100:
+                        #if dist < 50:    
                             
                             #se determina si el centro del vehiculo aparece dentro de los limites de la imagen
                             npc_is_in_image = is_in_image(npc,K,world_2_camera,image_w,image_h)
 
-                            if(npc_is_in_image):
+                            #Se determina si es visible, a traves de la pointcloud y la bb del vehiculo
+                            #si no supera un umbral de cantidad de puntos dentro de la bb, descartar y no labelear el vehiculo
+                            #si lo supera, determinar oclusion
+
+                            #Se obtiene la posicion del centro del vehiculo en coordenadas world3D
+                            npc_world_center_pos = npc.get_transform().location
+                            location_bbox_lidar_coor = w3D_to_lidar3D(npc_world_center_pos,world_2_lidar)
+
+                            #Bounding box 3D del vehiculo, se obtienen sus dimensiones
+                            bb = npc.bounding_box
+                            #https://carla.readthedocs.io/en/0.9.5/measurements/
+                            length=bb.extent.x*2    #extent.x es la mitad del largo del bb
+                            width=bb.extent.y*2     #extent.y es la mitad del ancho del bb
+                            height=bb.extent.z*2    #extent.z es la mitad del alto del bb
+
+                            #rotation_y
+                            #https://blog.csdn.net/qq_16137569/article/details/118873033
+                            rot_npc= npc.get_transform().rotation.yaw
+                            rot_vehicle = vehicle.get_transform().rotation.yaw
+
+                            rot_y = (rot_vehicle - rot_npc + 90.0) 
+
+                            if(rot_y > 180.0):
+                                rot_y -= 360.0
+
+                            if(rot_y < -180.0):
+                                rot_y += 360.0
+
+                            rot_y_rad = math.radians(-rot_y)#de grados a radianes
+
+                            #Bounding box sobre la poincloud
+                            bbox_3D_rot = -(rot_y_rad + np.pi/2) #porque la rot es segun el eje z y el eje x(eje y en coordenadas de camara)
+                            location_bbox_lidar_coor[2] = location_bbox_lidar_coor[2] + height/2 + 0.15
+                            bbox_3D_rot_matrix = o3d.geometry.get_rotation_matrix_from_xyz(np.asarray([0,0, bbox_3D_rot])) #matriz de rotation correspondiente al angulo
+                            bbox_3D_extent = np.array([height,width,length]) #dimensiones largo, ancho y alto (x,y,z)
+                            bbox_3D_center = np.array(location_bbox_lidar_coor) #posicion del centro de la bbox, en coordenadas de lidar
+
+                            bbox_3D = o3d.geometry.OrientedBoundingBox(bbox_3D_center,bbox_3D_rot_matrix,bbox_3D_extent)
+
+                            #Se obtienen los puntos que se encuentran dentro de la bounding box
+                            inside_indices = bbox_3D.get_point_indices_within_bounding_box(o3d_pointcloud.points)
+                            cant_points_inside = len(inside_indices)
+
+                            #DETERMINAR UMBRAL DE PUNTOS 
+                            umbral = 10
+                            npc_is_visible = (cant_points_inside > umbral)
+                            #npc_is_visible = True
+
+                            if(npc_is_in_image and npc_is_visible):
                                 
                                 #Se crea el label de este npc y se obtiene la informacion necesaria
                                 label = KittiLabel()
@@ -331,28 +413,16 @@ def main(arg):
                                 label.set_type('Car')
 
                                 #Location
-                                #Se obtiene la posicion del centro del vehiculo en coordenadas world3D
-                                npc_world_center_pos = get_center_world_pos(npc)
-                                #Se tranforma de world-3D a camara-2D
+                                #Se tranforma de world-3D a camara-3D
                                 location = w3D_to_cam3D(npc_world_center_pos,world_2_camera)
                                 label.set_location(location)
 
                                 #Dimensions
-                                #Se obtiene la bounding box del actor
-                                bb = npc.bounding_box
-                                #print(bb)
-                                #https://carla.readthedocs.io/en/0.9.5/measurements/
-                                length=bb.extent.x*2    #extent.x es la mitad del largo del bb
-                                width=bb.extent.y*2     #extent.y es la mitad del ancho del bb
-                                height=bb.extent.z*2    #extent.z es la mitad del alto del bb
-                                #print(length)
-                                #print(width)
-                                #print(height)
+
                                 dimensions = [height, width, length]
                                 label.set_dimensions(dimensions)
 
                                 #Bbox 2D
-
                                 #obtener vertices del bb en 2D
                                 verts = [v for v in bb.get_world_vertices(npc.get_transform())]
                                 verts_x = []
@@ -378,20 +448,7 @@ def main(arg):
                                 safe_bbox_2D = bbox_in_image(bbox_2D,image_w,image_h)
                                 label.set_bbox(safe_bbox_2D)
 
-                                #rotation_y
-                                #https://blog.csdn.net/qq_16137569/article/details/118873033
-                                rot_npc= npc.get_transform().rotation.yaw
-                                rot_vehicle = vehicle.get_transform().rotation.yaw
 
-                                rot_y = (rot_vehicle - rot_npc + 90.0) 
-
-                                if(rot_y > 180.0):
-                                    rot_y -= 360.0
-
-                                if(rot_y < -180.0):
-                                    rot_y += 360.0
-
-                                rot_y_rad = math.radians(rot_y)#de grados a radianes
                                 
                                 label.set_rotation_y(rot_y_rad)
 
@@ -411,10 +468,18 @@ def main(arg):
                                 label.set_alpha(alpha)
 
                                 #Truncated
-                                #TODO
+                                #Calcular area de las bbox2D, la original y la dentro de la imagen
+                                #bbox_2D = [left_limit, high_limit, rigth_limit, low_limit]
+                                bbox_2D_area = (bbox_2D[2]-bbox_2D[0])*(bbox_2D[3]-bbox_2D[1])
+                                safe_bbox_2D_area = (safe_bbox_2D[2]-safe_bbox_2D[0])*(safe_bbox_2D[3]-safe_bbox_2D[1])
+
+                                truncated = 1.0 - (safe_bbox_2D_area/bbox_2D_area) #si las bbox son iguales, es decir no hay truncado, truncated da 0.0
+                                                                                   #mientras mas chico safe_bbox, es decir mas truncado, truncated aumenta 
+
+                                label.set_truncated(truncated)
 
                                 #Occluded
-                                #TODO
+
 
                                 str_label = label.get_label()
                                 label_file.write("{}\n".format(str_label))

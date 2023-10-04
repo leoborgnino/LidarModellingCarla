@@ -47,7 +47,7 @@ private:
   bool PostprocessDetection(FDetection& Detection) const;
 
   void ComputeAndSaveDetections(const FTransform& SensorTransform) override;
-  void WriteFile(FString String) const;
+  bool WriteFile(FString Filename, FString String) override;
 
   FLidarData LidarData;
 
@@ -64,17 +64,47 @@ private:
 
   //Map de materialName,reflectivity para todos los materiales 
   //Se lo inicializa leyendo desde un archivo json en el constructor de la clase
-  TMap<FString, double> ReflectivityMap;
+  TMap<FString, double> ReflectanceMap;
 
   //Funcion para leer un archivo json y cargar el reflectivity map
-  void LoadReflectivityMapFromJson(); 
+  void LoadReflectanceMapFromJson(); 
   //const FString JsonMaterialsPath;
   
   FString GetHitMaterialName(const FHitResult& HitInfo) const;
 
-  //Lista de los nombres de actores, para los cuales se van a tener en cuenta los materiales
+  //Lista de los nombres de vehiculos, para los cuales se van a tener en cuenta los materiales
   //Se lo inicializa leyendo desde un archivo json en el constructor de la clase
-  TArray<FString> ActorsList;
+  TArray<FString> VehiclesList;
 
-  void LoadActorsList();
+  //Cargar la lista de vehiculos desde archivo json
+  void LoadVehiclesList();
+
+  //Calcular el angulo de incidencia del hit
+  float GetHitCosIncAngle(const FHitResult& HitInfo, const FTransform& SensorTransf) const;
+
+  //Determinar si el actor corresponde a un vehiculo
+  bool IsCriticalVehicle(FString ActorHitName) const;
+
+  //Determinar si el actor es un peaton
+  bool IsPedestrian(FString ActorHitName) const;
+
+  bool IsCyclist(FString ActorHitName) const;
+
+  //Obtener el valor de reflectividad del material
+  float GetMaterialReflectanceValue(FString MaterialName) const;
+
+  //Calcular la distancia del hit
+  float GetHitDistance(const FHitResult& HitInfo,const FTransform& SensorTransf) override;
+  float GetHitDistanceConst(const FHitResult& HitInfo,const FTransform& SensorTransf) const;
+
+  //Determinar si el hit es valido, segun la refletividad y la funcion de rango
+  bool CheckDetectableReflectance(const FHitResult& HitInfo,const FTransform& SensorTransf) override;
+
+  bool UnderMinimumReturnDistance(const FHitResult& HitInfo,const FTransform& SensorTransf) override;
+
+  FVector GetShootLoc(FVector LidarBodyLoc, FRotator ResultRot, int32 idxChannel) override;
+
+  int32 GetGroupOfChannel(int32 idxChannel);
+
+
 };
