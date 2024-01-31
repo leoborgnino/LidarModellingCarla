@@ -55,7 +55,7 @@ bounding_boxes = 0
 def lidar_callback(point_cloud):
     """Recibe la nube de puntos desde el simulador y la guarda en formato binario"""
 
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+    #logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
     
     #Crear directorios para guardar los datos, nubes de puntos, imagenes y labels
     images_path,pointclouds_path,calib_path,labels_path = create_output_folders()
