@@ -39,8 +39,8 @@ class KittiLabel:
                                'Misc', 'DontCare']
 
     def set_type(self, obj_type: str):
-        assert obj_type in self._valid_classes, "Campo type no valido, debe ser uno de: {}".format(
-            self._valid_classes)
+        #assert obj_type in self._valid_classes, "Campo type no valido, debe ser uno de: {}".format(
+        #    self._valid_classes)
         self.type = obj_type
 
     def set_truncated(self, truncated: float):
@@ -108,6 +108,8 @@ def calculate_location(npc,world_2_camera,world_2_lidar,rot_trans_matrix):
     #Se obtiene la posicion del centro del vehiculo en coordenadas world3D
     npc_world_center_pos = npc.get_transform().location
     #--------------------------
+    #print(npc.get_transform().location)
+    #print(world_2_lidar)
     location_lidar = w3D_to_lidar3D(npc_world_center_pos,world_2_lidar)
     location_lidar.append(1.0)
     location = np.matmul(rot_trans_matrix,location_lidar)
@@ -122,6 +124,16 @@ def calculate_location(npc,world_2_camera,world_2_lidar,rot_trans_matrix):
 def calculate_dimensions(npc):
     #Bounding box 3D del vehiculo, se obtienen sus dimensiones
     bb = npc.bounding_box
+    #https://carla.readthedocs.io/en/0.9.5/measurements/
+    length=bb.extent.x*2    #extent.x es la mitad del largo del bb
+    width=bb.extent.y*2     #extent.y es la mitad del ancho del bb
+    height=bb.extent.z*2    #extent.z es la mitad del alto del bb
+
+    #Dimensions
+    dimensions = [height, width, length]
+    return dimensions
+
+def calculate_dimensions_bb(bb):
     #https://carla.readthedocs.io/en/0.9.5/measurements/
     length=bb.extent.x*2    #extent.x es la mitad del largo del bb
     width=bb.extent.y*2     #extent.y es la mitad del ancho del bb
@@ -232,6 +244,41 @@ def generate_kittilabel(type, npc, vehicle, world_2_camera,K,image_w,image_h,wor
     label.set_truncated(truncated)
     '''
     print(type)
+    print(location)
+    print(dimensions)
+    print(safe_bbox_2D)
+    print(bbox_2D)
+    print(rotation_y)
+    print(alpha)
+    print(truncated)
+    '''
+
+    return label
+
+def generate_kittilabel_tr(type_class, actor, lidar, world_2_camera,K,image_w,image_h,world_2_lidar,rot_trans_matrix):
+    label = KittiLabel()
+
+    label.set_type(type_class)
+
+    dimensions = calculate_dimensions_bb(actor.bounding_box)
+    label.set_dimensions(dimensions)
+
+    location = calculate_location(actor,world_2_camera,world_2_lidar,rot_trans_matrix)
+    label.set_location(location)
+
+    safe_bbox_2D,bbox_2D = calculate_bbox2D(actor,K,world_2_camera,image_w,image_h)
+    label.set_bbox(safe_bbox_2D)
+
+    rotation_y=calculate_rotationy(actor,lidar)
+    label.set_rotation_y(rotation_y)
+
+    alpha = calculate_alpha(rotation_y,location)
+    label.set_alpha(alpha)
+
+    truncated = calculate_truncated(bbox_2D, safe_bbox_2D)
+    label.set_truncated(truncated)
+    '''
+    print(type_class)
     print(location)
     print(dimensions)
     print(safe_bbox_2D)

@@ -989,6 +989,11 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   ModelMaterial.Id = TEXT("model_material");
   ModelMaterial.Type = EActorAttributeType::Bool;
   ModelMaterial.RecommendedValues = { TEXT("false") };
+    // Model Material in intensity.
+  FActorVariation ModelMultipleReturn;
+  ModelMultipleReturn.Id = TEXT("model_multiple_return");
+  ModelMultipleReturn.Type = EActorAttributeType::Bool;
+  ModelMultipleReturn.RecommendedValues = { TEXT("false") };
   // Noise in intensity.
   FActorVariation StdDevIntensity;
   StdDevIntensity.Id = TEXT("noise_stddev_intensity");
@@ -1031,6 +1036,7 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       StdDevLidar,
       ModelAngleofIncidence,
       ModelMaterial,
+      ModelMultipleReturn,
       StdDevIntensity,
       ModelReflectanceLimitsFunction,
       ReflectanceLimitsFunctionCoeffA,
@@ -1048,6 +1054,7 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       LowerFOV,
       ModelAngleofIncidence,
       ModelMaterial,
+      ModelMultipleReturn,
       HorizontalFOV});
   }
   else if (Id == "ray_cast_time_resolved"){
@@ -1065,6 +1072,9 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       DropOffAtZeroIntensity,
       StdDevLidar,
       HorizontalFOV,
+      ModelAngleofIncidence,
+      ModelMaterial,
+      ModelMultipleReturn,
       LAMBDA0,
       MAX_RANGE,
       DEBUG_GLOBAL,
@@ -1082,7 +1092,7 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       RPD,
       RX_FS,
       RX_NOS,
-      TRANS_ON,
+      TRANS_ON,     
       INTENSITY_CALC});
   }
   else {
@@ -1761,6 +1771,8 @@ void UActorBlueprintFunctionLibrary::SetLidar(
       RetrieveActorAttributeToBool("model_angle", Description.Variations, Lidar.ModelAngleofIncidence);
   Lidar.ModelMaterial =
       RetrieveActorAttributeToBool("model_material", Description.Variations, Lidar.ModelMaterial);
+  Lidar.ModelMultipleReturn =
+      RetrieveActorAttributeToBool("model_multiple_return", Description.Variations, Lidar.ModelMultipleReturn);      
   Lidar.NoiseStdDev =
       RetrieveActorAttributeToFloat("noise_stddev", Description.Variations, Lidar.NoiseStdDev);
   Lidar.NoiseStdDevIntensity = 

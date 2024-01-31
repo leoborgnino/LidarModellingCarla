@@ -135,6 +135,10 @@ struct CARLA_API FLidarDescription
   UPROPERTY(EditAnywhere)
   bool ModelMaterial = false;
 
+  /// Model Multiple Return in LiDAR
+  UPROPERTY(EditAnywhere)
+  bool ModelMultipleReturn = false;
+
   /// Std Dev of noise in intensity
   UPROPERTY(EditAnywhere)
   float NoiseStdDevIntensity = 0.0f;

@@ -299,3 +299,76 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
     return false;
   }
 }
+
+
+bool ARayCastSemanticLidar::ShootMultiLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FCollisionQueryParams& TraceParams, int32 idxChannel)
+{
+  TRACE_CPUPROFILER_EVENT_SCOPE_STR(__FUNCTION__);
+
+  FHitResult HitInfo(ForceInit);
+
+  FTransform ActorTransf = GetTransform();
+  FVector LidarBodyLoc = ActorTransf.GetLocation();
+  FRotator LidarBodyRot = ActorTransf.Rotator();
+
+  FRotator LaserRot (VerticalAngle, HorizontalAngle, 0);  // float InPitch, float InYaw, float InRoll
+  FRotator ResultRot = UKismetMathLibrary::ComposeRotators(
+    LaserRot,
+    LidarBodyRot
+  );
+
+  const auto Range = Description.Range;
+  FVector EndTrace = Range * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc;
+
+  //Calcular la posicion del disparo segun el canal
+  FVector ShootLoc = GetShootLoc(LidarBodyLoc, ResultRot, idxChannel);
+
+  //CAMBIOS DE MODELO  
+  //El Trace debe ser complejo y retornar el fece index para obtener el material
+  TraceParams.bTraceComplex = true;
+  TraceParams.bReturnFaceIndex = true;
+
+  double TimeStampStart = FPlatformTime::Seconds() * 1000.0;
+
+  TArray<FHitResult> OutHits;
+  GetWorld()->LineTraceMultiByChannel( // revert me
+    OutHits,
+    ShootLoc,
+    EndTrace,
+    ECC_GameTraceChannel2,
+    TraceParams,
+    FCollisionResponseParams::DefaultResponseParam
+  );
+
+  double TimeStampEnd = FPlatformTime::Seconds() * 1000.0;
+  double TimeTrace = TimeStampEnd - TimeStampStart;
+
+  float DistanceTrace = GetHitDistance(HitInfo,ActorTransf);
+
+  //nombre del archivo para log
+  FString NameLogFile = TEXT("Log_channel_") + FString::FromInt(idxChannel) + TEXT(".txt");
+  //tiempo del disparo para log
+  FString TimeLog = TEXT("Tiempo:") +FString::SanitizeFloat(TimeTrace);
+  //ditancia del disparo para log
+  FString DistLog = TEXT("Distancia:") +FString::SanitizeFloat(DistanceTrace);
+
+  WriteFile(NameLogFile,DistLog);
+  WriteFile(NameLogFile,TimeLog);
+
+  //eliminar puntos que son del vehiculo recolector de datos
+  if(UnderMinimumReturnDistance(HitInfo,ActorTransf)){
+    return false;
+  }
+
+  //determinar si el punto corresponde a una reflectancia detectable
+  if(!CheckDetectableReflectance(HitInfo,ActorTransf)){
+    return false;
+  }
+
+  if (HitInfo.bBlockingHit) {
+    HitResult = HitInfo;
+    return true;
+  } else {
+    return false;
+  }
+}

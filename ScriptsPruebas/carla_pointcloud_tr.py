@@ -9,23 +9,57 @@ import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import open3d as o3d
-from kitti_label import KittiLabel
-
+from kitti_label import KittiLabel, generate_kittilabel
 try:
     sys.path.append('../PythonAPI/carla/dist/carla-0.9.13-py3.8-linux-x86_64.egg')
 except IndexError:
-    
     pass
 
 import carla
 
+""" OUTPUT FOLDERS """
+OUTPUT_FOLDER = "training"
+IMAGES_FOLDER = "image_2"
+POINTCLOUDS_FOLDER = "velodyne"
+LABELS_FOLDER = "label_2"
+CALIB_FOLDER = "calib"
+
+LIST_VEHICLES_PATH = "../../Unreal/CarlaUE4/LidarModelFiles/vehicles.json"
+
+""" SAVE PATHS """
+LIDAR_PATH = os.path.join(OUTPUT_FOLDER, 'velodyne/{0:06}.bin')
+LABEL_PATH = os.path.join(OUTPUT_FOLDER, 'label_2/{0:06}.txt')
+IMAGE_PATH = os.path.join(OUTPUT_FOLDER, 'image_2/{0:06}.png')
+CALIBRATION_PATH = os.path.join(OUTPUT_FOLDER, 'calib/{0:06}.txt')
+
+def create_folder(output_directory,folder):
+    output_folder = os.path.join(output_directory,folder)
+    os.makedirs(output_folder)
+
+    return output_folder
+
+def create_output_folders():
+    current_datetime = datetime.now().strftime("%d-%m-%y_%X")
+    output_directory = os.path.join(current_datetime,OUTPUT_FOLDER)
+
+    images_path = create_folder(output_directory, IMAGES_FOLDER)
+    pointcloud_path = create_folder(output_directory, POINTCLOUDS_FOLDER)
+    calib_path = create_folder(output_directory, CALIB_FOLDER)
+    labels_path = create_folder(output_directory, LABELS_FOLDER)
+
+    return images_path,pointcloud_path,calib_path,labels_path
+
 args = 0
 bounding_boxes = 0
-
 
 def lidar_callback(point_cloud):
     """Recibe la nube de puntos desde el simulador y la guarda en formato binario"""
 
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+    
+    #Crear directorios para guardar los datos, nubes de puntos, imagenes y labels
+    images_path,pointclouds_path,calib_path,labels_path = create_output_folders()
+    
     data = np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
     #print(point_cloud)
     total_points = 0
@@ -112,17 +146,20 @@ def main(arg):
         lidar_bp.set_attribute('rpd_rx',str(0.1))
 
         #Spawnea el LIDAR en la simulacion en la ubicacion especificado por argumentos
-        lidar_transform = carla.Transform(carla.Location(arg.x, arg.y, arg.z), 
-                            carla.Rotation(pitch=0.0, yaw=0.0, roll=0.0))
+        lidar_transform = carla.Transform(carla.Location(arg.x, arg.y, arg.z), carla.Rotation(pitch=0.0, yaw=0.0, roll=0.0))
         lidar = world.spawn_actor(lidar_bp, lidar_transform)
 
         box_bp = blueprint_library.find('static.prop.box01')
-        box_transform = carla.Transform(carla.Location(1.3, -1.3, 0.5), 
-                            carla.Rotation(pitch=0.0, yaw=0.0, roll=0.0))
+        box_transform = carla.Transform(carla.Location(1.3, -1.3, 0.5), carla.Rotation(pitch=0.0, yaw=0.0, roll=0.0))
         box = world.spawn_actor(box_bp,box_transform)
         
         global bounding_boxes
         bounding_boxes = box.bounding_box
+
+        #Se crea el label de este npc y se obtiene la informacion necesaria
+        #label = generate_kittilabel('Pedestrian',npc, vehicle, world_2_camera,K,image_w,image_h,world_2_lidar,rot_trans_matrix)
+        #str_label = label.get_label()
+        #label_file.write("{}\n".format(str_label))
         
         #Define la funcion de callback al recibir una nube de puntos
         lidar.listen(lambda data: lidar_callback(data))
