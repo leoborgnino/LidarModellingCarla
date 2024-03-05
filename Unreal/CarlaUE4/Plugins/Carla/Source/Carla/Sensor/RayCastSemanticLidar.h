@@ -49,10 +49,7 @@ protected:
   void SimulateLidar(const float DeltaTime);
 
   /// Shoot a laser ray-trace, return whether the laser hit something.
-  bool ShootLaser(const float VerticalAngle, float HorizontalAngle, FHitResult &HitResult, FCollisionQueryParams& TraceParams, int32 idxChannel);
-
-  /// Shoot a laser ray-trace, return whether multiple hits for dual return modelling
-  bool ShootMultiLaser(const float VerticalAngle, float HorizontalAngle, FHitResult &HitResult, FCollisionQueryParams& TraceParams, int32 idxChannel);
+  bool ShootLaser(const float VerticalAngle, float HorizontalAngle, TArray<FHitResult>& HitResults, FCollisionQueryParams& TraceParams, int32 idxChannel, const bool MultiShoot );
 
   /// Method that allow to preprocess if the rays will be traced.
   virtual void PreprocessRays(uint32_t Channels, uint32_t MaxPointsPerChannel);
