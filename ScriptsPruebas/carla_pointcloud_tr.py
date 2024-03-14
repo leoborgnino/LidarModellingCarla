@@ -142,6 +142,7 @@ def main(arg):
         lidar_bp.set_attribute('log_rx',"false")
         lidar_bp.set_attribute('model_transceptor',"false")
         lidar_bp.set_attribute('model_intensity',"true")
+        lidar_bp.set_attribute('model_multiple_return',"false")
         #lidar_bp.set_attribute('power_tx',str(50e-3))
         lidar_bp.set_attribute('rpd_rx',str(0.1))
 

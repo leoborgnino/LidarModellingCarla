@@ -165,99 +165,91 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
 
       //Determinar si el actor del hit, esta dentro de los actores a los cuales computar los materiales
       for (int32 i=0; i!=ActorsList.Num();i++){
-	if(ActorHitName.Contains(ActorsList[i])){
-	  ActorFound=true;
-	  break;
-	}
+	      if(ActorHitName.Contains(ActorsList[i])){
+	        ActorFound=true;
+	        break;
+	      }
       }
 
       float MaterialSpecular = GetHitMaterialSpecular(HitInfo);
       if(params.DEBUG_GLOBAL)
-	  UE_LOG(LogTemp, Log, TEXT("Specular: %s"), MaterialSpecular);
+	      UE_LOG(LogTemp, Log, TEXT("Specular: %s"), MaterialSpecular);
       //Segun si el nombre del actor, corresponde a un actor al cual computar su material
       if( ActorFound ){
-     
-	//Se obtiene el nombre del material del hit
-	FString MaterialNameHit = GetHitMaterialName(HitInfo);
-	//FString MaterialSpecular = GetHitMaterialName(HitInfo);
+	      //Se obtiene el nombre del material del hit
+	      FString MaterialNameHit = GetHitMaterialName(HitInfo);
+	      //FString MaterialSpecular = GetHitMaterialName(HitInfo);
 
-	if(params.DEBUG_GLOBAL)
-	  UE_LOG(LogTemp, Log, TEXT("Material: %s"), *MaterialNameHit);
+	    if(params.DEBUG_GLOBAL)
+	      UE_LOG(LogTemp, Log, TEXT("Material: %s"), *MaterialNameHit);
 
-	//Se recorre la lista de materiales con su respectiva reflectividad
-	for (auto& Elem : ReflectivityMap)
-	  {
-	    FString MaterialKey = Elem.Key;
-	    //comprueba de si el nombre del material esta incluido en el material del hit
-	    if(MaterialNameHit.Contains(MaterialKey)){
-	      //cuando se encuentra, se obtiene el valor de reflectividad asociado a ese material
-	      ReflectivityValue = (float)Elem.Value;
-	      //if(params.DEBUG_GLOBAL)
-	      //UE_LOG(LogTemp, Log, TEXT("Reflectividad: %f"), ReflectivityValue);
-	      MaterialFound=true;
-	      //WriteFile(MaterialNameHit);
-	      break;
-	    }
-	  }
+	    //Se recorre la lista de materiales con su respectiva reflectividad
+	    for (auto& Elem : ReflectivityMap){
+	      FString MaterialKey = Elem.Key;
+	      //comprueba de si el nombre del material esta incluido en el material del hit
+	      if(MaterialNameHit.Contains(MaterialKey)){
+	        //cuando se encuentra, se obtiene el valor de reflectividad asociado a ese material
+	        ReflectivityValue = (float)Elem.Value;
+	        if(params.DEBUG_GLOBAL)
+	          UE_LOG(LogTemp, Log, TEXT("Reflectividad: %f"), ReflectivityValue);
+	        MaterialFound=true;
+	        //WriteFile(MaterialNameHit);
+	        break;
+	        }
+	      }
       }
-
       if(!MaterialFound){
-	//Se le asigna una reflectivdad por defeto a los materiales no criticos
-	ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
-	ReflectivityValue = (float)*ReflectivityPointer;
+	    //Se le asigna una reflectivdad por defeto a los materiales no criticos
+	      ReflectivityPointer = ReflectivityMap.Find(TEXT("NoMaterial"));
+	      ReflectivityValue = (float)*ReflectivityPointer;
       }
 
       //La intensidad del punto tiene en cuenta:
       //Atenuacion atmosferica -> la intensidad sera menor a mayor distancia
       //Cos Ang Incidencia -> la intensidad mientras mas perpendicular a la superficie sea el rayo incidente
 
-      if (Description.TRANS_ON)
-	{
-	  // LiDAR Transceptor
-	  vector<float> output_tx;
-	  output_tx = tx_lidar->run();
+      if (Description.TRANS_ON){
+	      // LiDAR Transceptor
+	      vector<float> output_tx;
+	      output_tx = tx_lidar->run();
       
+	      vector<float> output_channel;
+	      output_channel = channel_lidar->run(output_tx,Distance,MaterialSpecular,CosAngle); // Ojo calcula la intensidad diferente
       
-	  vector<float> output_channel;
-	  output_channel = channel_lidar->run(output_tx,Distance,MaterialSpecular,CosAngle); // Ojo calcula la intensidad diferente
+	      vector<float> output_rx;  
+	      output_rx = rx_lidar->run(output_tx,output_channel);
+	      Detection.time_signal = output_rx;
       
-	  vector<float> output_rx;  
-	  output_rx = rx_lidar->run(output_tx,output_channel);
-	  Detection.time_signal = output_rx;
-      
-	  // Calculo de la distancia
-	  auto it = max_element(output_rx.begin(),output_rx.end());
-	  int max_idx = distance(output_rx.begin(),it);
-	  double max_value = *it;
-	  double distance = ((max_idx+1-output_tx.size())/(params.RX_FS*params.RX_NOS))*LIGHT_SPEED/2;      // Calculo de la distancia
-	  FVector vector_proc = (VectorIncidente*distance);
+	      // Calculo de la distancia
+	      auto it = max_element(output_rx.begin(),output_rx.end());
+	      int max_idx = distance(output_rx.begin(),it);
+	      double max_value = *it;
+	      double distance = ((max_idx+1-output_tx.size())/(params.RX_FS*params.RX_NOS))*LIGHT_SPEED/2;      // Calculo de la distancia
+	      FVector vector_proc = (VectorIncidente*distance);
 
-	  // Only Debug
-	  if(params.DEBUG_GLOBAL)
-	    {
-	      if (params.LOG_RX)
-		{
-		  cout << "Punto: " << Detection.point.x << " " << Detection.point.y << " " << Detection.point.z << endl;
-		  cout << "Punto: " << vector_proc.X << " " << vector_proc.Y << " " << vector_proc.Z << endl;
-		  cout << output_tx.size() << " " << output_channel.size() << " " << endl;
-		  UE_LOG(LogTemp, Log, TEXT("Distancia: %f"), Distance);
-		  cout << "Distancia Receptor: " << distance << endl;
-		  UE_LOG(LogTemp, Log, TEXT("Vector3: %s"), *(VectorIncidente*distance).ToString());
-		  UE_LOG(LogTemp, Log, TEXT("Vector: %s"), *VectorIncidente.ToString());
+	      // Only Debug
+	      if(params.DEBUG_GLOBAL){
+	        if (params.LOG_RX){
+		        cout << "Punto: " << Detection.point.x << " " << Detection.point.y << " " << Detection.point.z << endl;
+		        cout << "Punto: " << vector_proc.X << " " << vector_proc.Y << " " << vector_proc.Z << endl;
+		        cout << output_tx.size() << " " << output_channel.size() << " " << endl;
+		        UE_LOG(LogTemp, Log, TEXT("Distancia: %f"), Distance);
+		        cout << "Distancia Receptor: " << distance << endl;
+		        UE_LOG(LogTemp, Log, TEXT("Vector3: %s"), *(VectorIncidente*distance).ToString());
+		        UE_LOG(LogTemp, Log, TEXT("Vector: %s"), *VectorIncidente.ToString());
 		  
-		  UE_LOG(LogTemp, Log, TEXT("Vector2: %s"), *VectorIncidente_t.ToString());
+		        UE_LOG(LogTemp, Log, TEXT("Vector2: %s"), *VectorIncidente_t.ToString());
 		  
-		  cout << "******************* Detección ***************" << endl;
-		  for (auto& i : Detection.time_signal)
-		    cout <<  i << " ";
-		   cout << endl;
-		}
+		        cout << "******************* Detección ***************" << endl;
+		        for (auto& i : Detection.time_signal)
+		          cout <<  i << " ";
+		        cout << endl;
+		      }
+	      }  
+        Detection.point.x = vector_proc.X;
+	      Detection.point.y = vector_proc.Y;
+	      Detection.point.z = -vector_proc.Z;
 	    }
-	  Detection.point.x = vector_proc.X;
-	  Detection.point.y = vector_proc.Y;
-	  Detection.point.z = -vector_proc.Z;
-	}
-
     }
 
   //Reflectividad del material
@@ -268,10 +260,9 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
       using nano = std::chrono::nanoseconds;
       auto finish = std::chrono::high_resolution_clock::now();
       std::cout << "RAYCAST ELAPSED: "
-		<< std::chrono::duration_cast<nano>(finish - start).count()
-		<< " nanoseconds\n";
+		  << std::chrono::duration_cast<nano>(finish - start).count()
+		  << " nanoseconds\n";
     }
-
   return Detection;
 }
 
@@ -316,7 +307,7 @@ ATimeResolvedLidar::FDetection ATimeResolvedLidar::ComputeDetection(const FHitRe
       for (auto& hit : RecordedHits[idxChannel]) {
         FDetection Detection = ComputeDetection(hit, SensorTransform);
         if (PostprocessDetection(Detection))
-	  LidarData.WritePointSync(Detection);	    
+	        LidarData.WritePointSync(Detection);	    
         else
           PointsPerChannel[idxChannel]--;
       }
