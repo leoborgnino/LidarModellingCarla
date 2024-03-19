@@ -58,7 +58,7 @@ protected:
   void ComputeRawDetection(const FHitResult &HitInfo, const FTransform &SensorTransf, FSemanticDetection &Detection) const;
 
   /// Saving the hits the raycast returns per channel
-  void WritePointAsync(uint32_t Channel, FHitResult &Detection, uint16_t hitNum);
+  void WritePointAsync(uint32_t Channel, FHitResult &Detection);
 
   /// Clear the recorded data structure
   void ResetRecordedHits(uint32_t Channels, uint32_t MaxPointsPerChannel);
@@ -87,7 +87,8 @@ protected:
 
   TArray<float> LaserAngles;
 
-  std::vector<std::vector<std::vector<FHitResult>>> RecordedHits; // 3D for multiple detections
+  //std::vector<std::vector<std::vector<FHitResult>>> RecordedHits; // 3D for multiple detections
+  std::vector<std::vector<FHitResult>> RecordedHits; // 3D for multiple detections
   std::vector<std::vector<bool>> RayPreprocessCondition;
   std::vector<uint32_t> PointsPerChannel;
 

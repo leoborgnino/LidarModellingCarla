@@ -139,6 +139,10 @@ struct CARLA_API FLidarDescription
   UPROPERTY(EditAnywhere)
   bool ModelMultipleReturn = false;
 
+  /// Num of Max Returns
+  UPROPERTY(EditAnywhere)
+  bool NumReturnsMax = false;
+
   /// Std Dev of noise in intensity
   UPROPERTY(EditAnywhere)
   float NoiseStdDevIntensity = 0.0f;

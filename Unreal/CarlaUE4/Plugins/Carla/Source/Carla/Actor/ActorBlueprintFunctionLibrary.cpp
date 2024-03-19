@@ -994,6 +994,11 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   ModelMultipleReturn.Id = TEXT("model_multiple_return");
   ModelMultipleReturn.Type = EActorAttributeType::Bool;
   ModelMultipleReturn.RecommendedValues = { TEXT("false") };
+  // Max Number of Returns
+  FActorVariation NumReturnsMax;
+  NumReturnsMax.Id = TEXT("num_max_returns");
+  NumReturnsMax.Type = EActorAttributeType::Int;
+  NumReturnsMax.RecommendedValues = { TEXT("2") };
   // Noise in intensity.
   FActorVariation StdDevIntensity;
   StdDevIntensity.Id = TEXT("noise_stddev_intensity");
@@ -1037,6 +1042,7 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       ModelAngleofIncidence,
       ModelMaterial,
       ModelMultipleReturn,
+      NumReturnsMax,
       StdDevIntensity,
       ModelReflectanceLimitsFunction,
       ReflectanceLimitsFunctionCoeffA,
@@ -1055,6 +1061,7 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       ModelAngleofIncidence,
       ModelMaterial,
       ModelMultipleReturn,
+      NumReturnsMax,
       HorizontalFOV});
   }
   else if (Id == "ray_cast_time_resolved"){
@@ -1075,6 +1082,7 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       ModelAngleofIncidence,
       ModelMaterial,
       ModelMultipleReturn,
+      NumReturnsMax,
       LAMBDA0,
       MAX_RANGE,
       DEBUG_GLOBAL,
@@ -1773,6 +1781,8 @@ void UActorBlueprintFunctionLibrary::SetLidar(
       RetrieveActorAttributeToBool("model_material", Description.Variations, Lidar.ModelMaterial);
   Lidar.ModelMultipleReturn =
       RetrieveActorAttributeToBool("model_multiple_return", Description.Variations, Lidar.ModelMultipleReturn);      
+  Lidar.NumReturnsMax =
+      RetrieveActorAttributeToBool("num_max_returns", Description.Variations, Lidar.NumReturnsMax);      
   Lidar.NoiseStdDev =
       RetrieveActorAttributeToFloat("noise_stddev", Description.Variations, Lidar.NoiseStdDev);
   Lidar.NoiseStdDevIntensity = 

@@ -103,8 +103,8 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
       * DeltaTime;
   const float AngleDistanceOfLaserMeasure = AngleDistanceOfTick / PointsToScanWithOneLaser;
 
-  ResetRecordedHits(ChannelCount, PointsToScanWithOneLaser);
-  PreprocessRays(ChannelCount, PointsToScanWithOneLaser);
+  ResetRecordedHits(ChannelCount, PointsToScanWithOneLaser*Description.NumReturnsMax);
+  PreprocessRays(ChannelCount, PointsToScanWithOneLaser*Description.NumReturnsMax);
 
   GetWorld()->GetPhysicsScene()->GetPxScene()->lockRead();
   {
@@ -123,10 +123,10 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
         const bool PreprocessResult = RayPreprocessCondition[idxChannel][idxPtsOneLaser];
 
 	    TArray<FHitResult> HitsResult;
-	    if (PreprocessResult && ShootLaser(VertAngle, HorizAngle, HitsResult, TraceParams,idxChannel,ModelMultipleReturn)){
+	    if (PreprocessResult && ShootLaser(VertAngle, HorizAngle, HitsResult, TraceParams, idxChannel, ModelMultipleReturn)){
         uint16_t cnt_hit = 0;
         for (auto& hitInfo : HitsResult)
-	        WritePointAsync(idxChannel, hitInfo, cnt_hit);
+	        WritePointAsync(idxChannel, hitInfo);
           cnt_hit++;
         }
       };
@@ -161,10 +161,10 @@ void ARayCastSemanticLidar::PreprocessRays(uint32_t Channels, uint32_t MaxPoints
   }
 }
 
-void ARayCastSemanticLidar::WritePointAsync(uint32_t channel, FHitResult &detection, uint16_t column ) {
+void ARayCastSemanticLidar::WritePointAsync(uint32_t channel, FHitResult &detection ) {
 	TRACE_CPUPROFILER_EVENT_SCOPE_STR(__FUNCTION__);
   DEBUG_ASSERT(GetChannelCount() > channel);
-  RecordedHits[channel][column].emplace_back(detection);
+  RecordedHits[channel].emplace_back(detection);
 }
 
 void ARayCastSemanticLidar::ComputeAndSaveDetections(const FTransform& SensorTransform) {
@@ -267,7 +267,7 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
 
   // Shoot Laser
   if (MultiShoot)
-    GetWorld()->LineTraceMultiByChannel( 
+    GetWorld()->LineTraceMultiByChannel( // Parallel ?
       HitResults,
       ShootLoc,
       EndTrace,
