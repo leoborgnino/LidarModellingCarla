@@ -41,7 +41,7 @@ int  ChannelLidar::init(parametersLiDAR *params){
 };
 
 /*----------------------------------------------------------------------------*/
-vector<float> ChannelLidar::run(vector<float> channel_input, float range, float rho, float angle_inc)
+vector<float> ChannelLidar::run(vector<float> channel_input, float range, float attenuation)
 {
   float delay = 2*range/LIGHT_SPEED;
   int delay_samples = delay*FS*NOS;
@@ -49,7 +49,7 @@ vector<float> ChannelLidar::run(vector<float> channel_input, float range, float 
   float meas_delay = delay_samples/FS;
   float meas_range = meas_delay*LIGHT_SPEED/2;
 
-  float power_gain  = cos(angle_inc)*rho*ARX/(4*PI*pow(meas_range,2));
+  float power_gain  = attenuation*ARX/(4*PI*pow(meas_range,2));
   //double delta_phase = LIGHT_SPEED/LAMBDA0*meas_delay;
 
   if (DEBUG_CH)

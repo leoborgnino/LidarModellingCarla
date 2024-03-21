@@ -81,10 +81,17 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
   TRACE_CPUPROFILER_EVENT_SCOPE(ARayCastSemanticLidar::SimulateLidar);
   const bool ModelMultipleReturn = Description.ModelMultipleReturn;
   const uint32 ChannelCount = Description.Channels;
-  const uint32 PointsToScanWithOneLaser =
-    FMath::RoundHalfFromZero(
-        Description.PointsPerSecond * DeltaTime / float(ChannelCount));
 
+  check(ChannelCount == LaserAngles.Num());
+
+  const float CurrentHorizontalAngle = carla::geom::Math::ToDegrees(
+      SemanticLidarData.GetHorizontalAngle());
+  const float AngleDistanceOfTick = Description.RotationFrequency * Description.HorizontalFov
+      * DeltaTime;
+  const uint32_t PointsToScanWithOneLaser = AngleDistanceOfTick / Description.HorizontalFOVRes;
+  const float AngleDistanceOfLaserMeasure = AngleDistanceOfTick / PointsToScanWithOneLaser;
+
+  
   if (PointsToScanWithOneLaser <= 0)
   {
     UE_LOG(
@@ -94,14 +101,6 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
         *GetName());
     return;
   }
-
-  check(ChannelCount == LaserAngles.Num());
-
-  const float CurrentHorizontalAngle = carla::geom::Math::ToDegrees(
-      SemanticLidarData.GetHorizontalAngle());
-  const float AngleDistanceOfTick = Description.RotationFrequency * Description.HorizontalFov
-      * DeltaTime;
-  const float AngleDistanceOfLaserMeasure = AngleDistanceOfTick / PointsToScanWithOneLaser;
 
   ResetRecordedHits(ChannelCount, PointsToScanWithOneLaser*Description.NumReturnsMax);
   PreprocessRays(ChannelCount, PointsToScanWithOneLaser*Description.NumReturnsMax);

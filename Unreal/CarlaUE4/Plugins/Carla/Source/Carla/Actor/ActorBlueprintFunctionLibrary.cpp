@@ -765,24 +765,24 @@ void UActorBlueprintFunctionLibrary::MakeRadarDefinition(
   HorizontalFOV.Type = EActorAttributeType::Float;
   HorizontalFOV.RecommendedValues = { TEXT("30") };
   HorizontalFOV.bRestrictToRecommended = false;
-
+  
   FActorVariation VerticalFOV;
   VerticalFOV.Id = TEXT("vertical_fov");
   VerticalFOV.Type = EActorAttributeType::Float;
   VerticalFOV.RecommendedValues = { TEXT("30") };
   VerticalFOV.bRestrictToRecommended = false;
 
+  // Points per second.
+  FActorVariation PointsPerSecond;
+  PointsPerSecond.Id = TEXT("points_per_second");
+  PointsPerSecond.Type = EActorAttributeType::Int;
+  PointsPerSecond.RecommendedValues = { TEXT("3000") };
+  
   FActorVariation Range;
   Range.Id = TEXT("range");
   Range.Type = EActorAttributeType::Float;
   Range.RecommendedValues = { TEXT("100") };
   Range.bRestrictToRecommended = false;
-
-  FActorVariation PointsPerSecond;
-  PointsPerSecond.Id = TEXT("points_per_second");
-  PointsPerSecond.Type = EActorAttributeType::Int;
-  PointsPerSecond.RecommendedValues = { TEXT("1500") };
-  PointsPerSecond.bRestrictToRecommended = false;
 
   // Noise seed
   FActorVariation NoiseSeed;
@@ -829,11 +829,6 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   Range.Id = TEXT("range");
   Range.Type = EActorAttributeType::Float;
   Range.RecommendedValues = { TEXT("10.0") }; // 10 meters
-  // Points per second.
-  FActorVariation PointsPerSecond;
-  PointsPerSecond.Id = TEXT("points_per_second");
-  PointsPerSecond.Type = EActorAttributeType::Int;
-  PointsPerSecond.RecommendedValues = { TEXT("56000") };
   // Frequency.
   FActorVariation Frequency;
   Frequency.Id = TEXT("rotation_frequency");
@@ -854,6 +849,11 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   HorizontalFOV.Id = TEXT("horizontal_fov");
   HorizontalFOV.Type = EActorAttributeType::Float;
   HorizontalFOV.RecommendedValues = { TEXT("360.0") };
+  // Horizontal FOV Res.
+  FActorVariation HorizontalFOVRes;
+  HorizontalFOVRes.Id = TEXT("horizontal_fov_res");
+  HorizontalFOVRes.Type = EActorAttributeType::Float;
+  HorizontalFOVRes.RecommendedValues = { TEXT("0.1") };
   // Atmospheric Attenuation Rate.
   FActorVariation AtmospAttenRate;
   AtmospAttenRate.Id = TEXT("atmosphere_attenuation_rate");
@@ -891,11 +891,6 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
   LAMBDA0.Id = TEXT("lambda_laser");
   LAMBDA0.Type = EActorAttributeType::Float;
   LAMBDA0.RecommendedValues = { TEXT("950e-9") };
-  //params.MAX_RANGE =  50;
-  FActorVariation MAX_RANGE;
-  MAX_RANGE.Id = TEXT("max_range");
-  MAX_RANGE.Type = EActorAttributeType::Float;
-  MAX_RANGE.RecommendedValues = { TEXT("50.0") };
   //params.DEBUG_GLOBAL = false;
   FActorVariation DEBUG_GLOBAL;
   DEBUG_GLOBAL.Id = TEXT("debug_global");
@@ -1029,7 +1024,6 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
     Definition.Variations.Append({
       Channels,
       Range,
-      PointsPerSecond,
       Frequency,
       UpperFOV,
       LowerFOV,
@@ -1054,7 +1048,6 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
     Definition.Variations.Append({
       Channels,
       Range,
-      PointsPerSecond,
       Frequency,
       UpperFOV,
       LowerFOV,
@@ -1068,7 +1061,6 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
     Definition.Variations.Append({
       Channels,
       Range,
-      PointsPerSecond,
       Frequency,
       UpperFOV,
       LowerFOV,
@@ -1079,12 +1071,12 @@ void UActorBlueprintFunctionLibrary::MakeLidarDefinition(
       DropOffAtZeroIntensity,
       StdDevLidar,
       HorizontalFOV,
+      HorizontalFOVRes,
       ModelAngleofIncidence,
       ModelMaterial,
       ModelMultipleReturn,
       NumReturnsMax,
       LAMBDA0,
-      MAX_RANGE,
       DEBUG_GLOBAL,
       LOG_TX,
       LOG_RX,
@@ -1717,8 +1709,6 @@ void UActorBlueprintFunctionLibrary::SetLidar(
       RetrieveActorAttributeToInt("channels", Description.Variations, Lidar.Channels);
   Lidar.Range =
       RetrieveActorAttributeToFloat("range", Description.Variations, 10.0f) * TO_CENTIMETERS;
-  Lidar.PointsPerSecond =
-      RetrieveActorAttributeToInt("points_per_second", Description.Variations, Lidar.PointsPerSecond);
   Lidar.RotationFrequency =
       RetrieveActorAttributeToFloat("rotation_frequency", Description.Variations, Lidar.RotationFrequency);
   Lidar.UpperFovLimit =
@@ -1727,6 +1717,8 @@ void UActorBlueprintFunctionLibrary::SetLidar(
       RetrieveActorAttributeToFloat("lower_fov", Description.Variations, Lidar.LowerFovLimit);
   Lidar.HorizontalFov =
       RetrieveActorAttributeToFloat("horizontal_fov", Description.Variations, Lidar.HorizontalFov);
+  Lidar.HorizontalFOVRes =
+      RetrieveActorAttributeToFloat("horizontal_fov_res", Description.Variations, Lidar.HorizontalFOVRes);
   Lidar.AtmospAttenRate =
       RetrieveActorAttributeToFloat("atmosphere_attenuation_rate", Description.Variations, Lidar.AtmospAttenRate);
   Lidar.RandomSeed =
@@ -1741,8 +1733,6 @@ void UActorBlueprintFunctionLibrary::SetLidar(
       RetrieveActorAttributeToFloat("noise_stddev", Description.Variations, Lidar.NoiseStdDev);
   Lidar.LAMBDA0 =
     RetrieveActorAttributeToFloat("lambda_laser", Description.Variations, Lidar.LAMBDA0);
-  Lidar.MAX_RANGE =
-    RetrieveActorAttributeToFloat("max_range", Description.Variations, Lidar.MAX_RANGE);
   Lidar.DEBUG_GLOBAL =
     RetrieveActorAttributeToBool("debug_global", Description.Variations, Lidar.DEBUG_GLOBAL);
   Lidar.LOG_TX =

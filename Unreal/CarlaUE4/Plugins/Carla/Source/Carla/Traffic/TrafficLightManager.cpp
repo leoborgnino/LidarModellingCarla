@@ -10,7 +10,8 @@
 #include "YieldSignComponent.h"
 #include "SpeedLimitComponent.h"
 #include "Components/BoxComponent.h"
-
+#include "UObject/ConstructorHelpers.h" 
+#include "carla/opendrive/OpenDriveParser.h"
 #include <compiler/disable-ue4-macros.h>
 #include <carla/rpc/String.h>
 #include <carla/road/SignalType.h>
